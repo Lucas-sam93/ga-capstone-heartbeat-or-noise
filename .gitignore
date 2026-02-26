@@ -1,0 +1,39 @@
+# =============================================
+# DATA — Large files, personal data, generated outputs
+# =============================================
+
+# Physionet ECG files (large, sourced directly from Physionet)
+data/physionet/
+
+# Personal Apple Watch health data — MUST NEVER BE COMMITTED
+data/apple_watch/
+
+# Generated/processed outputs
+data/processed/
+
+# Catch-all for CSV files in data subdirectories
+data/**/*.csv
+
+# =============================================
+# MODELS — Saved model files
+# =============================================
+outputs/models/
+
+# =============================================
+# PYTHON — Cache and compiled files
+# =============================================
+__pycache__/
+*.pyc
+
+# =============================================
+# JUPYTER — Notebook checkpoints
+# =============================================
+.ipynb_checkpoints/
+
+# =============================================
+# ENVIRONMENTS — Virtual environment folders
+# =============================================
+venv/
+env/
+.env/
+.venv/
