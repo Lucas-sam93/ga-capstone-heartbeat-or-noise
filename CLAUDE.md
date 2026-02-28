@@ -1,10 +1,34 @@
 # CLAUDE.md — Capstone Project Persistent Guide
+Last updated: February 2026
+Status: Layer 1 complete. Layer 2 implementation in progress.
+
+---
+
+## SELF-UPDATE PROTOCOL — MANDATORY
+
+Claude Code must update this file at the completion of every implementation step. No exceptions.
+
+### When to Update
+After every cell that produces a new output file, after every function written to src/, after every methodological decision confirmed with Lucas, and after every phase or sub-phase is completed.
+
+### How to Update
+1. Open CLAUDE.md at the project root
+2. Update the Phase Tracker checkboxes to reflect completed work
+3. Add any new locked decisions to the Key Methodological Decisions table
+4. Add confirmed output file paths and record counts to the Confirmed Outputs table
+5. Update the Current Project Status section at the bottom
+6. Save the file before proceeding to the next implementation step
+
+### What Never to Change
+Do not modify the Behavioural Rules, the What This Project Is Not section, the research question, or any locked decision already recorded. These are fixed. If a situation arises that appears to require changing a locked decision, stop and flag it to Lucas explicitly before touching this file.
+
+---
 
 ## Who You Are Working With
 
 Lucas Sam is a certified personal trainer transitioning into data analytics. He has completed the Google Data Analytics Professional Certificate and is proficient in Python, SQL, R, Excel, Tableau, and Power BI. He has a background in psychology, which informs his analytical thinking. He is entrepreneurial, systems-oriented, and highly data-driven.
 
-Your role is **Senior Data Science Mentor**. You are not a code executor. You are a thinking partner who challenges reasoning, demands justification, and ensures every decision is defensible before a line of code is written.
+Your role is Senior Data Science Mentor. You are not a code executor. You are a thinking partner who challenges reasoning, demands justification, and ensures every decision is defensible before a line of code is written.
 
 ---
 
@@ -28,78 +52,286 @@ Your role is **Senior Data Science Mentor**. You are not a code executor. You ar
 
 ### Primary Dataset — Physionet 2017 AF Classification Challenge
 - **Source:** https://physionet.org/content/challenge-2017/1.0.0/
-- **Location:** `data/physionet/`
+- **Location:** data/physionet/
 - **Contents:** 8,528 single-lead ECG recordings, sampled at 300 Hz
 - **Labels (REFERENCE-v3.csv):**
   - N — Normal sinus rhythm: 5,076 records
   - A — Atrial Fibrillation: 758 records
   - O — Other rhythm abnormality: 2,415 records
-  - ~ — Noisy/unclassifiable: 279 records (EXCLUDED from model)
-- **Final training set:** 8,249 records after Noisy exclusion
+  - ~ — Noisy/unclassifiable: 279 records (EXCLUDED)
+- **After noisy exclusion:** 8,249 eligible records
+- **After feature extraction quality filtering:** 8,187 records (62 failed — 0.75% failure rate, expected for real clinical data)
 - **Binary label mapping:** N = 0 (Normal), A + O = 1 (Abnormal)
+- **Final class distribution:** 61.6% Normal (5,042), 38.4% Abnormal (3,145)
+- **AF within Abnormal:** 754 records (24.0% of Abnormal class)
 
 ### Secondary Dataset — Personal Apple Watch Data
-- **Location:** `data/apple_watch/`
-- **Files available:** hrv.csv, resting_hr.csv, heart_rate.csv, walking_hr.csv, respiratory_rate.csv, sleep.csv, steps.csv, energy.csv, body_mass.csv
-- **Temporal coverage:** April 2021 — February 2026 (nearly 5 years)
-- **HRV readings:** 5,485 records, mean 55.7ms, std 30.4ms
-- **Clinical anchor point:** Clinical ECG performed June 2025 with noted irregularity
+- **Device:** Apple Watch SE, 1st Generation — PPG optical sensor only. No electrical heart sensor. No ECG recordings. No irregular rhythm notifications.
+- **Location:** data/apple_watch/
+- **Temporal coverage:** April 2021 — February 2026 (4.8 years)
+- **Clinical anchor point:** June 18 2025 — clinical ECG with confirmed cardiac irregularity
 - **Role in project:** Consumer-grade signal bridge layer — NOT training or validation data
 
-### Signal Modality Hierarchy (Critical Context)
-Three tiers of signal quality exist in this project:
-1. 12-lead clinical ECG (hospital-grade, Lucas's June 2025 ECG)
-2. Single-lead consumer ECG (Apple Watch Series 4+) — NOT available in Lucas's data
-3. PPG-derived HRV (Apple Watch passive monitoring) — Lucas's primary personal dataset
+#### Confirmed Apple Watch Record Counts
+- Heart rate: 478,077 records (1 artifact removed)
+- HRV (SDNN): 5,456 records after cleaning (29 removed)
+- Resting heart rate: 1,491 records
+- Walking heart rate: 1,557 records
+- Respiratory rate: 20,372 records
+- Sleep: 7,967 records
+- Workouts: 1,982 sessions
+
+#### Excluded Apple Watch Metrics
+- Heart Rate Recovery: 49 records — insufficient temporal density
+- VO2 Max: 126 records — insufficient density and indirect relevance
+- ECG recordings: Hardware unavailable — Apple Watch SE has no electrical sensor
+
+#### Anchor Period Definitions (Pre-Registered)
+- baseline: more than 91 days before June 18 2025
+- pre_anchor: within 90 days before June 18 2025
+- post_anchor: within 90 days after June 18 2025
+- follow_up: more than 90 days after June 18 2025
+
+#### Heart Rate Sampling Interval (Confirmed February 2026)
+- Total readings: 478,077
+- Median gap: 39 seconds
+- Mean gap: 318 seconds (5.3 minutes)
+- Distribution: 19.2% under 5s, 29.7% between 5-15s, 49% between 1-60 minutes
+- Pattern: Irregular — burst mode during active monitoring, opportunistic mode during passive wear
+
+### Signal Modality Hierarchy
+1. 12-lead clinical ECG (hospital-grade — Lucas's June 2025 ECG)
+2. Single-lead consumer ECG (Apple Watch Series 4+) — NOT available on Lucas's device
+3. PPG-derived HRV (Apple Watch SE passive monitoring) — Lucas's primary personal dataset
 
 The gap between Tier 2 and Tier 3 is the central technical tension of the project.
 
 ---
 
-## Methodology — Phase Tracker
+## Locked Feature Set — Final (February 2026)
 
-Update this checklist as phases are completed. Always check current status before suggesting next steps.
+Eight features. All are time domain or statistical features derivable from both clinical ECG and Apple Watch PPG data. Locked before feature engineering began. Cannot be changed.
+
+| Feature | Description | Apple Watch Source |
+|---|---|---|
+| RMSSD | Beat-to-beat variability magnitude | Approximated from SDNN x 0.85 |
+| SDNN | Total HRV across recording window | Direct from HRV records |
+| Mean RR | Average inter-beat interval (ms) | Derived from HR time series (60000/hr) |
+| pNN50 | Proportion of consecutive pairs differing >50ms | Approximated from HR variance |
+| HR Mean | Average heart rate (bpm) | Direct from HR time series |
+| HR Std Dev | Heart rate fluctuation across window | Direct from HR time series |
+| RR Skewness | Asymmetry of RR interval distribution | Derived from HR time series |
+| RR Kurtosis | Tail weight of RR interval distribution | Derived from HR time series |
+
+**Excluded — LF/HF Ratio and HF Power:** Frequency domain features permanently excluded from both layers. Require raw beat-by-beat interval sequence which Apple Watch does not expose. Including them in Layer 1 would require fabricated values in Layer 2, corrupting the generalisation test.
+
+---
+
+## Layer 1 Results — Complete (February 2026)
+
+### Feature Engineering
+- Output: data/processed/physionet_features.csv
+- Records: 8,187 rows, 8 feature columns, zero missing values
+- Class distribution confirmed: 61.6% Normal, 38.4% Abnormal
+
+### Model Training
+- Split: 80/10/10 stratified (train=6,549, val=819, test=819)
+- Scaler: StandardScaler fitted on X_train only — no leakage confirmed
+- Class weighting: class_weight=balanced applied to all four models
+- Saved: outputs/models/scaler.joblib
+
+### Cross-Validation (5-fold stratified, threshold-optimised per fold)
+| Model | Sensitivity | Specificity | AUROC |
+|---|---|---|---|
+| Logistic Regression | 80.5% +/-0.1% | 84.2% +/-2.0% | 0.8817 +/-0.0066 |
+| Random Forest | 80.3% +/-0.2% | 86.7% +/-1.3% | 0.8955 +/-0.0080 |
+| XGBoost | 80.4% +/-0.2% | 82.5% +/-1.9% | 0.8809 +/-0.0054 |
+| SVM | 80.3% +/-0.2% | 86.9% +/-1.4% | 0.8960 +/-0.0062 |
+
+### Validation Set Results
+| Model | Sensitivity | Specificity | AUROC | AF Sens | Result |
+|---|---|---|---|---|---|
+| Logistic Regression | 80.3% | 84.5% | 0.8810 | 95.3% | PASS |
+| Random Forest | 80.0% | 86.7% | 0.9025 | 98.8% | PASS |
+| XGBoost | 80.0% | 84.7% | 0.8874 | 95.3% | PASS |
+| SVM | 80.0% | 88.1% | 0.8981 | 98.8% | PASS |
+
+### Train vs Test Accuracy Gap
+| Model | Train | Test | Gap | Verdict |
+|---|---|---|---|---|
+| Logistic Regression | 83.2% | 85.6% | -2.4% | No overfitting |
+| Random Forest | 100.0% | 86.6% | +13.4% | Significant overfitting |
+| XGBoost | 99.8% | 86.2% | +13.6% | Significant overfitting |
+| SVM | 85.6% | 86.8% | -1.2% | No overfitting |
+
+### Model Selected — SVM
+- Framework: Five-criterion natural selection. Criterion 2 resolved selection. No tiebreaker required.
+- Reason: Highest validation specificity (88.1%), fewest false positives (60), identical false negatives to Random Forest (63). No overfitting (-1.2% gap). Random Forest and XGBoost overfit significantly, retroactively reinforcing SVM for Layer 2 cross-modality application.
+
+### Held-Out Test Set Results — SVM at Fixed Threshold 0.34
+- Sensitivity: 84.4%
+- Specificity: 87.3%
+- AUROC: 0.9080
+- F1 (Abnormal): 0.8243
+- AF Sensitivity: 98.8%
+- Confusion matrix: TP=265, FP=64, FN=49, TN=441
+- Pre-registered criterion (Sens >=80%, Spec >=75%): PASS
+- Threshold 0.34 fixed from validation set — not re-optimised on test data
+
+### Unexpected Finding
+All four models detect AF more reliably than Other rhythms. SVM AF sensitivity 98.8% vs overall Abnormal sensitivity 84.4%. The heterogeneous Other rhythm class is the primary source of missed detections, not AF.
+
+### Random Forest Feature Importance (Supplementary)
+| Rank | Feature | Importance |
+|---|---|---|
+| 1 | RMSSD | 19.58% |
+| 2 | HR Std Dev | 15.58% |
+| 3 | Mean RR | 13.32% |
+| 4 | HR Mean | 12.39% |
+| 5 | SDNN | 11.87% |
+| 6 | RR Skewness | 9.61% |
+| 7 | pNN50 | 9.31% |
+| 8 | RR Kurtosis | 8.32% |
+
+### Saved Layer 1 Files
+- outputs/models/selected_model.joblib
+- outputs/models/scaler.joblib
+- outputs/models/evaluation_report.json
+- outputs/models/rf_feature_importance.csv
+
+---
+
+## Layer 2 Architecture — In Progress
+
+### Pre-Registered Success Criteria
+- Tier 1 PASS: Feature pipeline executes and gap quantification produces interpretable results
+- Tier 2 PASS: At least one anchor period shows statistically significant elevation above baseline (p < 0.05, one-sided Mann-Whitney U, scores higher not lower)
+- Tier 3 PASS: Tier 2 passed AND pre_anchor or post_anchor shows the elevation (not just follow_up) AND ECG report confirms irregularity within model's Abnormal detection scope
+
+### Statistical Test — Mann-Whitney U (One-Sided)
+Selected over KS test. Tier 2 criterion is directional — scores elevated above baseline. Mann-Whitney tests directionality. KS tests general distributional difference without direction. Locked February 2026 before any Layer 2 analysis began.
+
+### Sliding Window Parameters (Locked February 2026)
+- WINDOW_SIZE_MINUTES = 30
+- STEP_SIZE_MINUTES = 15
+- MIN_READINGS = 10
+- Rationale: Irregular sampling (median 39s, P75 4.8min) requires time-based not count-based windows. 30-minute window exceeds published 5-minute HRV minimum. 15-minute step produces 50% overlap for smooth temporal coverage. Minimum 10 readings prevents unreliable estimates in sparse periods.
+
+### RMSSD Approximation (Locked)
+Apple Watch does not expose raw beat-by-beat intervals. RMSSD approximated as SDNN x 0.85 based on published RMSSD-SDNN correlation. Introduces known error. Error quantified in gap analysis and reported transparently as a constraint.
+
+### New Files to Create
+- src/apple_watch_features.py — three functions: extract_hrv_features(), extract_hr_features(), build_apple_watch_feature_matrix()
+- notebooks/04_layer2_analysis.ipynb — seven cells
+- outputs/layer2/ — new output directory
+
+### Notebook Cell Plan — 04_layer2_analysis.ipynb
+- Cell 1: Imports, paths, load Layer 1 files, define WINDOW_SIZE_MINUTES, STEP_SIZE_MINUTES, MIN_READINGS constants
+- Cell 2: Call build_apple_watch_feature_matrix(), save apple_watch_features.csv
+- Cell 3: Inspection — Apple Watch vs Physionet feature distributions side by side
+- Cell 4: KS gap quantification per feature, save gap_quantification.csv
+- Cell 5: Apply scaler and SVM, generate probability scores, save probability_scores.csv
+- Cell 6: One-sided Mann-Whitney U per anchor period vs baseline, save mann_whitney_results.csv
+- Cell 7: Formal Tier 1/2/3 assessment against pre-registered criteria
+
+### Pending — ECG Report
+June 2025 ECG report not yet retrieved. Tier 3 cannot be fully evaluated until the specific irregularity type is confirmed. When retrieved, update this file with the finding.
+
+---
+
+## Key Methodological Decisions — All Locked
+
+| Decision | Choice | Justification |
+|---|---|---|
+| Primary dataset | Physionet 2017 | Clinically validated, single-lead ECG matches wearable modality |
+| Noisy class | Excluded | Signal quality failure, not rhythm classification |
+| Classification type | Binary (Normal vs Abnormal) | Screening context requires triage decision, not diagnosis |
+| Abnormal class composition | AF + Other combined | Screening tool flags any anomaly worth clinical evaluation |
+| Secondary analysis | AF-specific sensitivity | AF is most clinically critical |
+| Feature constraint | Wearable-extractable only | Ensures valid generalisation test |
+| Frequency domain features | Excluded permanently | Apple Watch does not expose raw beat intervals required |
+| Apple Watch role | Bridge layer only | N=1, no clinical outcome labels |
+| Evaluation priority | Sensitivity over accuracy | Missing a true positive is more dangerous in screening context |
+| Class imbalance handling | class_weight=balanced | Preserves training data integrity over oversampling |
+| Classification threshold | 0.34 (validation-optimised) | Lowered below 0.5 to prioritise sensitivity for screening |
+| Model selection | SVM | Highest specificity, fewest false positives, no overfitting |
+| Statistical test | Mann-Whitney U (one-sided) | Directional test matching directional Tier 2 criterion |
+| Window size | 30 minutes | Exceeds 5-minute HRV minimum, suits irregular sampling |
+| Step size | 15 minutes | 50% overlap for smooth temporal coverage |
+| RMSSD approximation | SDNN x 0.85 | Raw beat intervals unavailable from Apple Watch |
+
+---
+
+## Confirmed Outputs
+
+| File | Location | Records | Status |
+|---|---|---|---|
+| physionet_features.csv | data/processed/ | 8,187 rows, 8 features | Complete |
+| heart_rate_clean.csv | data/processed/ | 478,077 records | Complete |
+| hrv_clean.csv | data/processed/ | 5,456 records | Complete |
+| selected_model.joblib | outputs/models/ | SVM | Complete |
+| scaler.joblib | outputs/models/ | StandardScaler | Complete |
+| evaluation_report.json | outputs/models/ | Full metrics | Complete |
+| rf_feature_importance.csv | outputs/models/ | 8 features ranked | Complete |
+| apple_watch_features.csv | data/processed/ | Pending | Pending |
+| gap_quantification.csv | outputs/layer2/ | Pending | Pending |
+| probability_scores.csv | outputs/layer2/ | Pending | Pending |
+| mann_whitney_results.csv | outputs/layer2/ | Pending | Pending |
+
+---
+
+## Phase Tracker
 
 ### Phase 1 — Data Acquisition and Understanding
-- [x] Physionet 2017 dataset downloaded and validated (8,528 .mat files + REFERENCE-v3.csv)
-- [x] Apple Watch HRV data loaded and assessed (5,485 records, April 2021 — Feb 2026)
-- [ ] Apple Watch Tier 1 files assessed (resting_hr, heart_rate, walking_hr)
-- [ ] Signal modality mapping documented
+- [x] Physionet 2017 dataset downloaded and validated
+- [x] Apple Watch HRV data loaded and assessed
+- [x] Apple Watch heart rate data assessed (478,077 records, sampling interval confirmed)
+- [x] Signal modality mapping documented
+- [x] Apple Watch device limitations confirmed (PPG only, no ECG, no irregular rhythm notifications)
 
 ### Phase 2 — Data Preprocessing
-- [ ] Fixed-length signal segmentation strategy defined and applied
-- [ ] Noisy (~) class excluded with documented justification
-- [ ] Binary label mapping applied (N=0, A+O=1)
-- [ ] Class imbalance assessed (target: ~60/40 after exclusion)
-- [ ] Apple Watch data cleaned (outliers, timezone standardisation, contextual segmentation)
+- [x] Noisy class excluded with documented justification
+- [x] Binary label mapping applied (N=0, A+O=1)
+- [x] Class imbalance assessed (61.6/38.4 confirmed)
+- [x] Apple Watch heart rate data cleaned (1 artifact removed)
+- [x] Apple Watch HRV data cleaned (29 implausible records removed)
+- [x] Anchor period labels defined and pre-registered
 
 ### Phase 3 — Feature Engineering
-- [ ] Constrained feature set defined (wearable-extractable only)
-- [ ] Time domain features extracted from Physionet RR intervals
-- [ ] Frequency domain features extracted from Physionet RR intervals
-- [ ] Same feature pipeline applied to Apple Watch data
-- [ ] Feature gap analysis documented (what Apple Watch cannot replicate)
+- [x] Constrained feature set defined and locked (8 features)
+- [x] Frequency domain features excluded with justification
+- [x] Time domain features extracted from Physionet ECG (src/features.py)
+- [x] Feature matrix validated (8,187 records, zero missing values)
+- [ ] Apple Watch feature pipeline implemented (src/apple_watch_features.py)
+- [ ] Feature gap analysis completed (KS quantification)
 
 ### Phase 4 — Model Development
-- [ ] Baseline Logistic Regression trained
-- [ ] Random Forest trained
-- [ ] XGBoost trained
-- [ ] Support Vector Machine trained
-- [ ] Train/validation/test split applied (80/10/10, stratified)
+- [x] Train/validation/test split applied (80/10/10, stratified)
+- [x] StandardScaler fitted on training data only
+- [x] Logistic Regression trained
+- [x] Random Forest trained
+- [x] XGBoost trained
+- [x] Support Vector Machine trained
+- [x] Five-fold cross-validation completed
 
 ### Phase 5 — Model Evaluation
-- [ ] Sensitivity (AF class recall) evaluated — PRIMARY METRIC
-- [ ] AUROC evaluated
-- [ ] F1 Score per class evaluated
-- [ ] Specificity evaluated
-- [ ] Confusion matrix analysed
-- [ ] Classification threshold optimised for screening context
-- [ ] Secondary AF-specific sensitivity analysis completed
+- [x] Sensitivity evaluated — PRIMARY METRIC (84.4% on test set)
+- [x] Specificity evaluated (87.3% on test set)
+- [x] AUROC evaluated (0.9080 on test set)
+- [x] F1 Score evaluated (0.8243 on test set)
+- [x] Confusion matrix analysed
+- [x] Classification threshold optimised (0.34, validation-derived)
+- [x] AF-specific sensitivity analysis completed (98.8%)
+- [x] Train vs test accuracy gap assessed (SVM -1.2%, no overfitting)
+- [x] Model selected (SVM — Criterion 2 of natural selection framework)
 
 ### Phase 6 — Consumer Wearable Bridge
-- [ ] Feature pipeline applied to Apple Watch data
-- [ ] Signal degradation documented and quantified
-- [ ] Pre/post June 2025 ECG HRV analysis completed
+- [ ] Apple Watch feature pipeline implemented
+- [ ] Signal gap quantified (KS per feature)
+- [ ] Probability scores generated for all Apple Watch readings
+- [ ] Temporal analysis completed (Mann-Whitney U per anchor period)
+- [ ] Tier assessment completed
+- [ ] ECG report retrieved and incorporated
 - [ ] Personal case study narrative written
 
 ### Phase 7 — Conclusions
@@ -107,23 +339,7 @@ Update this checklist as phases are completed. Always check current status befor
 - [ ] Singapore public health implications addressed
 - [ ] Limitations documented
 - [ ] Future work section written
-
----
-
-## Key Methodological Decisions
-
-These are decisions already made with justification. You may challenge them if you identify a logical flaw, but do not reverse them without explicit justification and Lucas's approval.
-
-| Decision | Choice | Justification |
-|---|---|---|
-| Primary dataset | Physionet 2017 | Clinically validated, single-lead ECG matches wearable modality, designed for algorithm development |
-| Noisy class | Excluded | Signal quality failure, not rhythm classification — would introduce label noise |
-| Classification type | Binary (Normal vs Abnormal) | Screening context requires triage decision, not diagnosis |
-| Abnormal class composition | AF + Other combined | Screening tool flags any anomaly worth clinical evaluation |
-| Secondary analysis | AF-specific sensitivity | AF is most clinically critical — model must demonstrate it catches AF within Abnormal class |
-| Feature constraint | Wearable-extractable only | Ensures valid generalisation test — model must operate on signals wearables can actually produce |
-| Apple Watch role | Bridge/illustration layer | N=1, no clinical outcome labels — cannot serve as training or validation data |
-| Evaluation priority | Sensitivity over accuracy | Missing a true positive (undetected anomaly) is more dangerous than a false positive in screening context |
+- [ ] GitHub repository created
 
 ---
 
@@ -131,9 +347,9 @@ These are decisions already made with justification. You may challenge them if y
 
 - **OS:** Windows 11
 - **IDE:** VS Code with Jupyter Notebooks
-- **Python environment:** Anaconda, conda environment named `cvd_project`
+- **Python environment:** Anaconda, conda environment named cvd_project
 - **Python version:** 3.13
-- **Key packages:** numpy, pandas, scipy, scikit-learn, matplotlib, seaborn, wfdb, ipykernel
+- **Key packages:** numpy, pandas, scipy, scikit-learn, matplotlib, seaborn, wfdb, joblib, xgboost, ipykernel
 
 ### Project Folder Structure
 ```
@@ -143,25 +359,26 @@ C:\Projects\GA Capstone Project\
 │   CLAUDE.md
 │
 ├───data\
-│   ├───physionet\        # 8,528 .mat ECG files + REFERENCE-v3.csv
-│   ├───apple_watch\      # Personal Apple Watch CSV exports
-│   └───processed\        # Cleaned, feature-engineered outputs
+│   ├───physionet\           # 8,528 .mat ECG files + REFERENCE-v3.csv
+│   ├───apple_watch\         # Personal Apple Watch CSV exports
+│   └───processed\           # Cleaned and feature-engineered outputs
 │
 ├───notebooks\
 │   ├───01_data_exploration.ipynb
 │   ├───02_feature_engineering.ipynb
 │   ├───03_modelling.ipynb
-│   ├───04_apple_watch_bridge.ipynb
-│   └───05_conclusions.ipynb
+│   └───04_layer2_analysis.ipynb
 │
 ├───src\
-│   ├───features.py       # Feature extraction functions
-│   ├───preprocess.py     # Signal cleaning functions
-│   └───evaluate.py       # Model evaluation functions
+│   ├───features.py              # Physionet feature extraction
+│   ├───preprocess.py            # Signal cleaning functions
+│   ├───evaluate.py              # Model evaluation and selection
+│   └───apple_watch_features.py  # Layer 2 Apple Watch extraction (pending)
 │
 └───outputs\
-    ├───figures\          # All plots and visualisations
-    └───models\           # Saved model files
+    ├───figures\             # All plots and visualisations
+    ├───models\              # Saved Layer 1 model files
+    └───layer2\              # Layer 2 outputs (pending)
 ```
 
 ---
@@ -170,56 +387,55 @@ C:\Projects\GA Capstone Project\
 
 ### Before Writing Any Code
 1. Explain what you are about to do and why
-2. Explain the alternatives you considered and why you are not using them
+2. Explain the alternatives considered and why they are not being used
 3. Wait for explicit approval before proceeding
 4. If the approach touches a methodological decision, flag it explicitly
 
 ### Code Standards
-- Never use inline comments — use docstrings and block comments only
-- All reusable functions go in `src/` files, not notebooks
-- Notebooks call functions from `src/` — they do not define them
+- All reusable functions go in src/ files — not notebooks
+- Notebooks call functions from src/ — they do not define them
+- Notebooks declare src/ calls in a comment at the top of each cell that uses them
 - Always include input validation in functions
-- Save all figures to `outputs/figures/`
-- Save all models to `outputs/models/`
+- Always include docstrings with Parameters and Returns sections
+- Use os.path.join() for all file paths — Windows compatibility
+- Save all figures to outputs/figures/
+- Save all models to outputs/models/
+- Save all Layer 2 outputs to outputs/layer2/
+- Raw data files are never modified
 
 ### Decision Protocol
-Every decision — including hyperparameter choices, visualisation types, feature inclusion, train/test splits, and architectural choices — requires Lucas's explicit approval before implementation. No exceptions.
+Every decision requires Lucas's explicit approval before implementation. No exceptions.
 
 ### Environment Protocol
-- Never assume the conda environment is active — ask Lucas to confirm `(cvd_project)` is shown in his terminal before running installation commands
-- Never assume file paths — confirm working directory with `os.getcwd()` before referencing relative paths
-- Always use `os.path.join()` for file paths to ensure Windows compatibility
+- Confirm cvd_project environment is active before running commands
+- Confirm working directory with os.getcwd() before referencing relative paths
+- Use os.path.join() for all paths
 
-### Challenge Protocol
-- Always challenge Lucas's logic before accepting it
-- If Lucas proposes something that contradicts a prior methodological decision, flag the contradiction explicitly
-- If Lucas accepts a recommendation without justification, ask him to articulate the reasoning in his own words
-- Do not allow scope creep — if a new dataset or feature is proposed, require explicit justification for how it serves the research question
-
-### Communication Style
-- Pitch all explanations at senior mentor level — clear, precise, technically accurate
-- Do not use jargon without explanation
-- When something is wrong, say so directly and explain why
-- Never praise a decision simply because Lucas made it — only acknowledge good reasoning when it is genuinely sound
+### Self-Update Protocol
+Update CLAUDE.md after every completed implementation step. See Self-Update Protocol at the top of this file.
 
 ---
 
 ## What This Project Is Not
 
-Be explicit about these boundaries in all outputs:
-
-- This is **not** a clinical diagnostic tool
-- This is **not** a validated medical device
-- The Apple Watch analysis is **not** a clinical finding — it is a personal case study with explicit limitations
-- The model output is **not** a diagnosis — it is a screening flag that warrants further clinical evaluation
-- N=1 personal data **cannot** support population-level generalisable claims
+- This is not a clinical diagnostic tool
+- This is not a validated medical device
+- The Apple Watch analysis is not a clinical finding — it is a personal case study with explicit limitations
+- The model output is not a diagnosis — it is a screening flag that warrants further clinical evaluation
+- N=1 personal data cannot support population-level generalisable claims
 
 ---
 
 ## Current Project Status
 
-Last updated: February 2026
+**Last updated:** February 2026
 
-Phases 1 partial, all others pending. Apple Watch Tier 1 file assessment is the immediate next step before feature engineering begins.
+**Layer 1:** Complete. SVM selected. Test set: sensitivity 84.4%, specificity 87.3%, AUROC 0.9080. All files saved.
 
-The June 2025 ECG report has not yet been retrieved. When it is, update this file with the findings and reassess the personal data narrative in Phase 6 accordingly.
+**Layer 2:** In progress. Window parameters locked (30 min, 15 min step, min 10 readings). Awaiting implementation of src/apple_watch_features.py and 04_layer2_analysis.ipynb.
+
+**Immediate next steps:**
+1. Implement src/apple_watch_features.py — three functions
+2. Implement 04_layer2_analysis.ipynb — seven cells
+3. Retrieve ECG report for Tier 3 assessment
+4. Create GitHub repository
