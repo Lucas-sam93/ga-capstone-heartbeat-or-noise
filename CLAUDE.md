@@ -302,7 +302,7 @@ June 2025 ECG report not yet retrieved. Tier 3 cannot be fully evaluated until t
 - [x] Frequency domain features excluded with justification
 - [x] Time domain features extracted from Physionet ECG (src/features.py)
 - [x] Feature matrix validated (8,187 records, zero missing values)
-- [ ] Apple Watch feature pipeline implemented (src/apple_watch_features.py)
+- [x] Apple Watch feature pipeline implemented (src/apple_watch_features.py)
 - [ ] Feature gap analysis completed (KS quantification)
 
 ### Phase 4 — Model Development
@@ -326,7 +326,8 @@ June 2025 ECG report not yet retrieved. Tier 3 cannot be fully evaluated until t
 - [x] Model selected (SVM — Criterion 2 of natural selection framework)
 
 ### Phase 6 — Consumer Wearable Bridge
-- [ ] Apple Watch feature pipeline implemented
+- [x] Apple Watch feature pipeline implemented
+- [x] 04_layer2_analysis.ipynb Cell 1 complete (imports, paths, constants, Layer 1 artifacts loaded)
 - [ ] Signal gap quantified (KS per feature)
 - [ ] Probability scores generated for all Apple Watch readings
 - [ ] Temporal analysis completed (Mann-Whitney U per anchor period)
@@ -432,10 +433,9 @@ Update CLAUDE.md after every completed implementation step. See Self-Update Prot
 
 **Layer 1:** Complete. SVM selected. Test set: sensitivity 84.4%, specificity 87.3%, AUROC 0.9080. All files saved.
 
-**Layer 2:** In progress. Window parameters locked (30 min, 15 min step, min 10 readings). Awaiting implementation of src/apple_watch_features.py and 04_layer2_analysis.ipynb.
+**Layer 2:** In progress. src/apple_watch_features.py complete. 04_layer2_analysis.ipynb Cell 1 complete (imports, paths, constants, Layer 1 artifacts loaded). Proceeding with Cell 2.
 
 **Immediate next steps:**
-1. Implement src/apple_watch_features.py — three functions
-2. Implement 04_layer2_analysis.ipynb — seven cells
-3. Retrieve ECG report for Tier 3 assessment
-4. Create GitHub repository
+1. Implement 04_layer2_analysis.ipynb Cells 2–7
+2. Retrieve ECG report for Tier 3 assessment
+3. Create GitHub repository
