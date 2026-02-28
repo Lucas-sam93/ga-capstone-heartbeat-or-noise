@@ -30,15 +30,32 @@ While Apple's AF detection algorithm represents a clinically validated applicati
 ## Datasets
 
 ### Primary — Physionet 2017 AF Classification Challenge
-- 8,249 clinically validated single-lead ECG recordings (after exclusions)
-- Binary label mapping: Normal (N) versus Abnormal (AF + Other rhythm)
+- 8,528 single-lead ECG recordings sampled at 300 Hz
+- 8,249 usable recordings after excluding 279 noisy-class (`~`) records
+- Binary label mapping: Normal (N → 0) versus Abnormal (AF + Other → 1)
+- Class distribution: 5,076 Normal, 758 AF, 2,415 Other
 - Source: https://physionet.org/content/challenge-2017/1.0.0/
 
 ### Secondary — Personal Apple Watch Data
-- 5,485 heart rate variability readings spanning April 2021 to February 2026
-- Supplementary metrics: resting heart rate, walking heart rate, continuous heart rate
-- Clinical anchor point: ECG conducted June 2025 confirming cardiac irregularity
-- Role: Consumer-grade signal bridge layer — not used for model training or validation
+- **Device:** Apple Watch SE 1st Generation (Model A2352)
+- **Source:** 1.58 GB Apple Health XML export (3.79M total records, 515K from Watch)
+- **Temporal coverage:** April 2021 — February 2026 (nearly 5 years)
+- **Extracted metrics:**
+
+| Metric | Records | File |
+|--------|--------:|------|
+| Heart rate (continuous) | 478,078 | `heart_rate_raw.csv` |
+| Respiratory rate | 20,372 | `respiratory_rate_raw.csv` |
+| Sleep analysis | 7,967 | `sleep_raw.csv` |
+| Heart rate variability (SDNN) | 5,485 | `hrv_raw.csv` |
+| Workouts | 1,982 | `workouts_raw.csv` |
+| Walking heart rate average | 1,557 | `walking_hr_raw.csv` |
+| Resting heart rate | 1,491 | `resting_hr_raw.csv` |
+| VO2 Max | 126 | `vo2max_raw.csv` |
+| Heart rate recovery (1 min) | 49 | `hr_recovery_raw.csv` |
+
+- **Clinical anchor point:** ECG conducted June 18, 2025 confirming cardiac irregularity
+- **Role:** Consumer-grade signal bridge layer — not used for model training or validation
 
 ---
 
@@ -49,12 +66,58 @@ A binary cardiac rhythm classifier is trained and validated on the Physionet dat
 
 **Minimum performance threshold:** Sensitivity ≥ 0.80 at Specificity ≥ 0.75
 
+**Locked feature set** (8 features, frequency domain excluded):
+| Feature | Description |
+|---------|-------------|
+| RMSSD | Root mean square of successive RR interval differences |
+| SDNN | Standard deviation of all RR intervals |
+| Mean RR | Average inter-beat interval (ms) |
+| pNN50 | Proportion of successive intervals differing by >50ms |
+| HR Mean | Average heart rate derived from RR intervals |
+| HR Std Dev | Variability of instantaneous heart rate |
+| RR Skewness | Asymmetry of the RR interval distribution |
+| RR Kurtosis | Tail weight of the RR interval distribution |
+
 ### Layer 2 — Consumer Wearable Bridge
 The trained model is applied to personal Apple Watch data to evaluate signal transferability from clinical ECG to consumer PPG-derived measurements. Success is assessed across three tiers:
 
 - **Tier 1 — Foundational Applicability:** The feature pipeline executes on Apple Watch data with interpretable outputs and documented signal quality differences between clinical and consumer measurements.
 - **Tier 2 — Signal Detection:** Model output scores show statistically meaningful deviation from personal baseline during the ninety-day window surrounding the June 2025 clinical ECG event.
 - **Tier 3 — Clinical Concordance:** The ECG report confirms an irregularity consistent with the model's detection scope and the Apple Watch data demonstrates the Tier 2 deviation pattern.
+
+---
+
+## Current Progress
+
+### Completed
+
+**Phase 1 — Data Acquisition and Exploration** (`01_data_exploration.ipynb`)
+- Physionet 2017 dataset validated: 8,528 `.mat` + `.hea` file pairs, class distribution confirmed
+- Apple Health XML fully parsed: 3.79M records from 8 source devices identified
+- Apple Watch data extracted: 515,125 records across 9 metric types saved as raw CSVs
+- Sample ECG waveform visualised and saved (`outputs/figures/sample_ecg.png`)
+
+**Phase 2 — Data Preprocessing** (`02_feature_engineering.ipynb`)
+- Apple Watch cleaning pipeline built (`src/preprocess.py`) and executed across 5 cardiac metrics
+- Cleaning results: >99% data retention across all metrics (29 HRV records removed as non-numeric, all other metrics 100% retained)
+- Post-pipeline artifact removal: 1 confirmed sensor artifact (210 bpm during sleep on 2021-08-28) removed from `heart_rate_clean.csv`
+- Anchor period labels assigned: baseline (>91 days before ECG), pre_anchor (90 days before), post_anchor (90 days after), follow_up (>90 days after)
+- Heart rate distribution validated: mean 84.8 bpm, median 82.0 bpm, range 39–205 bpm
+- 7 remaining edge cases documented (2× sleep bradycardia at 39 bpm, 5× exercise tachycardia at 201–205 bpm) — retained as physiologically plausible
+
+**Phase 3 — Feature Engineering** (`02_feature_engineering.ipynb` + `src/features.py`)
+- Feature extraction pipeline built (`src/features.py`) for Physionet clinical ECG recordings
+- 8 locked HRV features defined and constrained to wearable-extractable measurements
+- R-peak detection via XQRS with quality filtering (RR intervals: 300–2000ms, minimum 10 valid intervals per recording)
+- Binary label mapping applied: N → 0 (Normal), A/O → 1 (Abnormal), `~` excluded
+- Feature extraction in progress across 8,249 recordings — output will be saved to `data/processed/physionet_features.csv`
+
+### Remaining
+
+- **Phase 4 — Model Development:** Train baseline Logistic Regression, Random Forest, XGBoost, and SVM classifiers
+- **Phase 5 — Model Evaluation:** Evaluate sensitivity (primary), AUROC, F1, specificity; optimise classification threshold for screening
+- **Phase 6 — Consumer Wearable Bridge:** Apply feature pipeline to Apple Watch data, quantify signal degradation, analyse pre/post ECG anchor patterns
+- **Phase 7 — Conclusions:** Answer research question, document Singapore public health implications, limitations, and future work
 
 ---
 
@@ -66,26 +129,62 @@ ga-capstone-heartbeat-or-noise/
 │   CLAUDE.md
 │
 ├───data/
-│   ├───physionet/        # 8,249 ECG recordings + REFERENCE-v3.csv
-│   ├───apple_watch/      # Personal Apple Watch CSV exports
-│   └───processed/        # Feature-engineered outputs
+│   ├───physionet/            # 8,528 ECG recordings (.mat + .hea) + REFERENCE-v3.csv
+│   ├───apple_watch/          # Raw CSV exports from Apple Health XML
+│   │   ├───export.xml        # Source XML (1.58 GB, not committed)
+│   │   ├───heart_rate_raw.csv
+│   │   ├───hrv_raw.csv
+│   │   ├───resting_hr_raw.csv
+│   │   ├───walking_hr_raw.csv
+│   │   ├───respiratory_rate_raw.csv
+│   │   ├───sleep_raw.csv
+│   │   ├───vo2max_raw.csv
+│   │   ├───hr_recovery_raw.csv
+│   │   └───workouts_raw.csv
+│   └───processed/            # Cleaned and feature-engineered outputs
+│       ├───heart_rate_clean.csv
+│       ├───hrv_clean.csv
+│       ├───resting_hr_clean.csv
+│       ├───walking_hr_clean.csv
+│       ├───respiratory_rate_clean.csv
+│       └───physionet_features.csv  (pending — feature extraction in progress)
 │
 ├───notebooks/
-│   ├───01_data_exploration.ipynb
-│   ├───02_feature_engineering.ipynb
-│   ├───03_modelling.ipynb
-│   ├───04_apple_watch_bridge.ipynb
-│   └───05_conclusions.ipynb
+│   ├───01_data_exploration.ipynb       # Data acquisition, XML parsing, validation
+│   ├───02_feature_engineering.ipynb    # Cleaning pipeline, artifact removal, feature extraction
+│   ├───03_modelling.ipynb              # (planned)
+│   ├───04_apple_watch_bridge.ipynb     # (planned)
+│   └───05_conclusions.ipynb            # (planned)
 │
 ├───src/
-│   ├───features.py       # Feature extraction functions
-│   ├───preprocess.py     # Signal cleaning functions
-│   └───evaluate.py       # Model evaluation functions
+│   ├───preprocess.py     # Apple Watch data cleaning pipeline
+│   ├───features.py       # Physionet ECG feature extraction (8 HRV features)
+│   └───evaluate.py       # Model evaluation functions (planned)
 │
 └───outputs/
-    ├───figures/
-    └───models/
+    ├───figures/           # sample_ecg.png
+    └───models/            # (planned — saved model files)
 ```
+
+---
+
+## Notebook Guide
+
+| Notebook | Purpose | Key Outputs |
+|----------|---------|-------------|
+| `01_data_exploration` | Validate Physionet dataset, parse Apple Health XML, extract raw CSVs | 9 raw CSV files in `data/apple_watch/`, `sample_ecg.png` |
+| `02_feature_engineering` | Clean Apple Watch data, remove artifacts, extract Physionet features | 5 cleaned CSVs in `data/processed/`, `physionet_features.csv` |
+| `03_modelling` | Train and compare binary classifiers | (planned) |
+| `04_apple_watch_bridge` | Apply model to Apple Watch data, analyse anchor periods | (planned) |
+| `05_conclusions` | Answer research question, document limitations | (planned) |
+
+### Source Modules
+
+| Module | Called By | Purpose |
+|--------|-----------|---------|
+| `src/preprocess.py` | `02_feature_engineering` | Cleans 5 Apple Watch metrics: date parsing, non-numeric removal, threshold filtering (30–220 bpm HR, 5–200ms HRV, etc.), anchor period assignment |
+| `src/features.py` | `02_feature_engineering` | Extracts 8 HRV features from Physionet ECG recordings: R-peak detection (XQRS), RR interval computation, quality filtering, feature calculation |
+| `src/evaluate.py` | `03_modelling` | (planned) |
 
 ---
 
@@ -110,11 +209,13 @@ pip install wfdb
 | Decision | Choice | Justification |
 |---|---|---|
 | Primary dataset | Physionet 2017 | Clinically validated, single-lead ECG matches wearable modality |
-| Noisy class | Excluded | Signal quality failure, not rhythm classification |
+| Noisy class | Excluded (279 records) | Signal quality failure, not rhythm classification |
 | Classification type | Binary — Normal vs Abnormal | Screening requires triage decision, not diagnosis |
-| Feature constraint | Wearable-extractable only | Ensures valid generalisation test |
+| Feature constraint | 8 wearable-extractable HRV features | Ensures valid generalisation test — model operates on signals wearables can produce |
+| Frequency domain | Excluded | Decision made Feb 2026 — time domain features sufficient for initial benchmark |
 | Primary metric | Sensitivity | Missing a true positive is more dangerous than a false positive in screening |
 | Apple Watch role | Bridge layer only | N=1, no clinical outcome labels |
+| Anchor date | June 18, 2025 | Date of clinical ECG confirming cardiac irregularity |
 
 ---
 
@@ -126,4 +227,4 @@ This project does not constitute a clinical trial and does not produce a validat
 
 ## Acknowledgements
 
-Dataset provided by Physionet and the Computing in Cardiology Challenge 2017 organisers. Personal health data collected via Apple Watch and exported through Apple Health.
+Dataset provided by Physionet and the Computing in Cardiology Challenge 2017 organisers. Personal health data collected via Apple Watch SE (1st Generation) and exported through Apple Health.
