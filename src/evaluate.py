@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     roc_auc_score,
     f1_score,
@@ -122,6 +125,125 @@ def find_optimal_threshold(model, X_test, y_test):
         }
 
     return best
+
+
+def cross_validate_models(models, X_train, y_train, n_folds=5,
+                          random_state=42):
+    """
+    Five-fold stratified cross-validation with threshold
+    optimisation applied independently within each fold.
+
+    For each model and each fold:
+    1. Split training data into fold-train and fold-val
+    2. Fit a fresh StandardScaler on fold-train only
+    3. Train a cloned model on fold-train
+    4. Call find_optimal_threshold on fold-val to get
+       threshold-optimised sensitivity and specificity
+    5. Compute AUROC on fold-val probabilities
+
+    This ensures the cross-validation estimate reflects
+    the actual evaluation pipeline — not a fixed-threshold
+    approximation.
+
+    Parameters
+    ----------
+    models : dict
+        Dictionary mapping model name to fitted estimator.
+        Each model is cloned before fitting per fold.
+    X_train : pd.DataFrame
+        Training set features (pre-split, unscaled).
+    y_train : pd.Series
+        Training set binary labels.
+    n_folds : int
+        Number of stratified folds (default 5).
+    random_state : int
+        Random seed for fold generation.
+
+    Returns
+    -------
+    dict
+        Keys are model names. Values are dicts containing:
+            sensitivity_mean : float
+            sensitivity_std  : float
+            specificity_mean : float
+            specificity_std  : float
+            auroc_mean       : float
+            auroc_std        : float
+            fold_details     : list of per-fold result dicts
+    """
+    skf = StratifiedKFold(
+        n_splits=n_folds,
+        shuffle=True,
+        random_state=random_state
+    )
+
+    results = {}
+
+    for name, model in models.items():
+        fold_metrics = []
+
+        for fold_idx, (train_idx, val_idx) in enumerate(
+            skf.split(X_train, y_train), 1
+        ):
+            # ── Split into fold-train and fold-val ──────────────
+            X_fold_train = X_train.iloc[train_idx]
+            y_fold_train = y_train.iloc[train_idx]
+            X_fold_val   = X_train.iloc[val_idx]
+            y_fold_val   = y_train.iloc[val_idx]
+
+            # ── Fresh scaler per fold — no leakage ──────────────
+            fold_scaler = StandardScaler()
+            X_fold_train_scaled = pd.DataFrame(
+                fold_scaler.fit_transform(X_fold_train),
+                columns=X_train.columns,
+                index=X_fold_train.index
+            )
+            X_fold_val_scaled = pd.DataFrame(
+                fold_scaler.transform(X_fold_val),
+                columns=X_train.columns,
+                index=X_fold_val.index
+            )
+
+            # ── Clone and train on fold-train ───────────────────
+            fold_model = clone(model)
+            fold_model.fit(X_fold_train_scaled, y_fold_train)
+
+            # ── Threshold-optimised evaluation on fold-val ──────
+            thresh_result = find_optimal_threshold(
+                fold_model, X_fold_val_scaled, y_fold_val
+            )
+
+            # ── AUROC on fold-val ───────────────────────────────
+            fold_proba = fold_model.predict_proba(
+                X_fold_val_scaled
+            )[:, 1]
+            fold_auroc = roc_auc_score(y_fold_val, fold_proba)
+
+            fold_metrics.append({
+                'fold':        fold_idx,
+                'sensitivity': thresh_result['sensitivity'],
+                'specificity': thresh_result['specificity'],
+                'auroc':       round(fold_auroc, 4),
+                'threshold':   thresh_result['threshold'],
+                'meets_floor': thresh_result['meets_criterion']
+            })
+
+        # ── Aggregate across folds ──────────────────────────────
+        sens_vals = [f['sensitivity'] for f in fold_metrics]
+        spec_vals = [f['specificity'] for f in fold_metrics]
+        auroc_vals = [f['auroc'] for f in fold_metrics]
+
+        results[name] = {
+            'sensitivity_mean': round(np.mean(sens_vals), 4),
+            'sensitivity_std':  round(np.std(sens_vals), 4),
+            'specificity_mean': round(np.mean(spec_vals), 4),
+            'specificity_std':  round(np.std(spec_vals), 4),
+            'auroc_mean':       round(np.mean(auroc_vals), 4),
+            'auroc_std':        round(np.std(auroc_vals), 4),
+            'fold_details':     fold_metrics
+        }
+
+    return results
 
 
 def evaluate_model(name, model, X_test, y_test, label_col=None):
