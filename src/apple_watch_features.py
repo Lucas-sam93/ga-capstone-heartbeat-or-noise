@@ -107,7 +107,7 @@ def extract_hr_features(hr_path, window_size_minutes=30,
     if min_readings < 2:
         raise ValueError("min_readings must be at least 2")
 
-    df = pd.read_csv(hr_path, parse_dates=['startDate'])
+    df = pd.read_csv(hr_path, parse_dates=['startDate'], low_memory=False)
     df = df.sort_values('startDate').reset_index(drop=True)
 
     window_delta = pd.Timedelta(minutes=window_size_minutes)

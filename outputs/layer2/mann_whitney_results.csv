@@ -1,0 +1,4 @@
+period,n,median_score,U_statistic,p_value,effect_size_r,significant,direction
+pre_anchor,95,0.1035,74785.0,0.9569872281423275,0.1044,False,lower
+post_anchor,29,0.1005,22759.5,0.8392160825030819,0.1072,False,lower
+follow_up,115,0.1209,97527.5,0.7367045292884798,0.0352,False,higher

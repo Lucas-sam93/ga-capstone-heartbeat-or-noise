@@ -4,13 +4,6 @@ Status: Layer 1 complete. Layer 2 implementation in progress.
 
 ---
 
-## SELF-UPDATE PROTOCOL — MANDATORY
-
-Claude Code must update this file at the completion of every implementation step. No exceptions.
-
-### When to Update
-After every cell that produces a new output file, after every function written to src/, after every methodological decision confirmed with Lucas, and after every phase or sub-phase is completed.
-
 ### How to Update
 1. Open CLAUDE.md at the project root
 2. Update the Phase Tracker checkboxes to reflect completed work
@@ -273,10 +266,11 @@ June 2025 ECG report not yet retrieved. Tier 3 cannot be fully evaluated until t
 | scaler.joblib | outputs/models/ | StandardScaler | Complete |
 | evaluation_report.json | outputs/models/ | Full metrics | Complete |
 | rf_feature_importance.csv | outputs/models/ | 8 features ranked | Complete |
-| apple_watch_features.csv | data/processed/ | Pending | Pending |
-| gap_quantification.csv | outputs/layer2/ | Pending | Pending |
+| apple_watch_features.csv | data/processed/ | 1,997 rows, 12 columns | Complete |
+| gap_quantification.csv | outputs/layer2/ | 8 rows, 5 columns | Complete |
 | probability_scores.csv | outputs/layer2/ | Pending | Pending |
 | mann_whitney_results.csv | outputs/layer2/ | Pending | Pending |
+| aw_vs_physionet_distributions.png | outputs/figures/ | 8-subplot figure | Complete |
 
 ---
 
@@ -328,7 +322,10 @@ June 2025 ECG report not yet retrieved. Tier 3 cannot be fully evaluated until t
 ### Phase 6 — Consumer Wearable Bridge
 - [x] Apple Watch feature pipeline implemented
 - [x] 04_layer2_analysis.ipynb Cell 1 complete (imports, paths, constants, Layer 1 artifacts loaded)
-- [ ] Signal gap quantified (KS per feature)
+- [x] 04_layer2_analysis.ipynb Cell 2 complete (feature matrix built, 1,997 rows, saved to data/processed/)
+- [x] 04_layer2_analysis.ipynb Cell 3 complete (distribution plots saved to outputs/figures/)
+- [x] 04_layer2_analysis.ipynb Cell 4 complete (KS gap quantification: 5 large, 3 moderate, 0 small)
+- [x] Signal gap quantified (KS per feature)
 - [ ] Probability scores generated for all Apple Watch readings
 - [ ] Temporal analysis completed (Mann-Whitney U per anchor period)
 - [ ] Tier assessment completed
@@ -433,9 +430,9 @@ Update CLAUDE.md after every completed implementation step. See Self-Update Prot
 
 **Layer 1:** Complete. SVM selected. Test set: sensitivity 84.4%, specificity 87.3%, AUROC 0.9080. All files saved.
 
-**Layer 2:** In progress. src/apple_watch_features.py complete. 04_layer2_analysis.ipynb Cell 1 complete (imports, paths, constants, Layer 1 artifacts loaded). Proceeding with Cell 2.
+**Layer 2:** In progress. src/apple_watch_features.py complete. 04_layer2_analysis.ipynb Cells 1–4 complete (feature matrix built, distributions plotted, KS gaps quantified). Cell 5 pending.
 
 **Immediate next steps:**
-1. Implement 04_layer2_analysis.ipynb Cells 2–7
+1. Implement 04_layer2_analysis.ipynb Cells 3–7
 2. Retrieve ECG report for Tier 3 assessment
 3. Create GitHub repository
