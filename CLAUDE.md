@@ -90,13 +90,20 @@ Your role is Senior Data Science Mentor. You are not a code executor. You are a 
 - **Ground truth:** Pre-assigned clinical labels at subject level — AF or NSR
 - **Labels:** AF files = Abnormal (1), Non-AF files = Normal (0)
 - **Subjects:** 35 critically ill adults — 19 AF, 16 NSR
-- **Recording duration:** 10 minutes per subject
+- **Recording duration:** 20 minutes per subject (confirmed — 150,000 samples ÷ 125 Hz = 1,200s)
+- **Rows per file:** 150,001 (150,000 data points)
+- **Columns:** Time, PPG, ECG, resp (all float64)
+- **Sampling rate:** 125 Hz (confirmed from _fix.txt metadata)
+- **PPG column:** Present in all 35 files — pipeline-ready
+- **Nulls:** 8 of 35 files have PPG nulls — worst case NAF_012 at 1,728 nulls (1.15%). Handled by linear interpolation pre-peak-detection.
+- **resp column:** Absent in 9 of 35 files — irrelevant, pipeline uses PPG only
+- **Companion files:** _fix.txt per subject — contains subject ID, signal descriptions, sampling rate
 - **File formats available:** CSV, MATLAB .mat, WFDB
 - **Format selected:** CSV — most straightforward for Python pipeline
 - **Role in project:** Primary Layer 2 validation — real PPG with pre-labeled binary ground truth, no access barrier
-- **Status:** Downloaded from Zenodo. CSV structure verification pending.
+- **Status:** CSV structure verified. Implementation ready to begin.
 - **Pivot rationale:** Simband access unavailable before deadline. MIMIC PERform AF satisfies all three validation requirements: wearable PPG signal, both Normal and Abnormal subjects, pre-existing ground truth labels.
-- **Requires:** PPG peak detection step (NeuroKit2) to extract RR intervals before feature extraction. Sampling rate to be confirmed from CSV files.
+- **Requires:** PPG peak detection step (NeuroKit2, sampling_rate=125) to extract RR intervals before feature extraction.
 
 ### UMass Simband — SUPERSEDED
 - **Status:** Access not obtained before deadline. Replaced by MIMIC PERform AF.
@@ -246,13 +253,14 @@ Personal Apple Watch data is structurally weak for this validation — single in
 Apple Watch N=1 limitations identified during analysis. The research question is better answered with a multi-subject wearable dataset with confirmed labels. Simband access unavailable before deadline. MIMIC PERform AF (Zenodo) selected as deadline-compatible alternative satisfying all three validation requirements. Pivot motivated by structural weakness of N=1 design and access constraints — not by desire to rescue null result. Sequence documented transparently.
 
 ### MIMIC PERform AF Implementation Plan
-1. Unzip CSV files and verify column structure — confirm PPG column name and sampling rate
-2. Implement PPG peak detection (NeuroKit2) to extract RR intervals from finger PPG
-3. Extract 8 features from RR intervals using locked feature set — one 10-minute window per subject
-4. Apply scaler with transform() only — NO fit_transform(), NO retraining
-5. Apply SVM at fixed threshold 0.34 — NO threshold adjustment
-6. Evaluate sensitivity, specificity, AUROC against pre-assigned AF/NSR labels
-7. Run gap quantification (KS test) against Physionet training distribution
+1. Load all 35 CSV files — 19 AF, 16 NSR
+2. Apply linear interpolation to PPG nulls in 8 affected files before any processing
+3. Implement PPG peak detection (NeuroKit2, sampling_rate=125) to extract RR intervals
+4. Extract 8 features from RR intervals using locked feature set — single 20-minute window per subject
+5. Apply scaler with transform() only — NO fit_transform(), NO retraining
+6. Apply SVM at fixed threshold 0.34 — NO threshold adjustment
+7. Evaluate sensitivity, specificity, AUROC against pre-assigned AF/NSR labels
+8. Run gap quantification (KS test) against Physionet training distribution
 
 ---
 
@@ -278,8 +286,9 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 | Apple Watch merge strategy | Drop windows with no HRV | No imputation |
 | Layer 2 primary validation | MIMIC PERform AF (Zenodo) | Real PPG, pre-labeled binary ground truth, no access barrier, deadline-compatible |
 | Mann-Whitney test direction | alternative='greater' | Pre-registered, maintained despite null finding |
-| Window size (MIMIC PERform AF) | Single 10-minute window per subject | Preserves Layer 1 pipeline contract — one feature vector per subject, one prediction, one label |
+| Window size (MIMIC PERform AF) | Single 20-minute window per subject | Confirmed recording duration is 20 min — preserves Layer 1 pipeline contract, longer window strengthens HRV feature reliability |
 | Label mapping (MIMIC PERform AF) | AF files = 1 (Abnormal), Non-AF files = 0 (Normal) | Pre-assigned at file level, no derivation needed, maps directly to binary framing |
+| PPG null handling (MIMIC PERform AF) | Linear interpolation pre-peak-detection | 8 of 35 files affected, worst case 1.15% — standard PPG cleaning practice, documentable and defensible |
 
 ---
 
@@ -324,7 +333,7 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Apple Watch feature pipeline implemented (src/apple_watch_features.py)
 - [x] Apple Watch feature matrix built (1,997 windows)
 - [x] Feature gap analysis completed (KS — 5 large, 3 moderate, 0 small)
-- [ ] MIMIC PERform AF CSV structure verified (sampling rate, PPG column confirmed)
+- [x] MIMIC PERform AF CSV structure verified (125 Hz, PPG column confirmed, 150,000 samples per file)
 - [ ] MIMIC PERform AF PPG peak detection pipeline implemented (src/mimic_perform_af_features.py)
 - [ ] MIMIC PERform AF feature extraction complete
 
@@ -347,7 +356,7 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Mann-Whitney U tests complete (null result)
 - [ ] Cell 7 tier assessment (pending)
 - [x] MIMIC PERform AF dataset downloaded from Zenodo
-- [ ] MIMIC PERform AF CSV structure verified
+- [x] MIMIC PERform AF CSV structure verified
 - [ ] MIMIC PERform AF pipeline implemented and evaluated
 - [ ] ECG report retrieved
 - [ ] Final narrative written
@@ -440,11 +449,11 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 
 **Layer 2 — Apple Watch (N=1):** Cells 1-6 complete. Null result. Tier assessment (Cell 7) pending. Retained as case study appendix.
 
-**Layer 2 — MIMIC PERform AF (Primary):** Dataset downloaded from Zenodo (doi.org/10.5281/zenodo.6807402). 35 subjects — 19 AF (Abnormal), 16 NSR (Normal). 10-minute finger PPG recordings with pre-assigned binary labels. Single 10-minute window per subject locked. Awaiting CSV structure verification before implementation begins.
+**Layer 2 — MIMIC PERform AF (Primary):** CSV structure verified. 35 subjects — 19 AF (Abnormal), 16 NSR (Normal). 125 Hz finger PPG, 20-minute recordings, 150,000 samples per file. Single 20-minute window per subject locked. Linear interpolation for PPG nulls locked. Ready to implement src/mimic_perform_af_features.py.
 
 **Immediate next steps:**
 1. Run Cell 7 tier assessment in 04_layer2_analysis.ipynb
-2. Unzip CSV files and verify column structure — confirm PPG column name and sampling rate
-3. Implement src/mimic_perform_af_features.py and notebooks/05_mimic_perform_af_validation.ipynb once structure confirmed
+2. Implement src/mimic_perform_af_features.py
+3. Implement notebooks/05_mimic_perform_af_validation.ipynb
 4. Retrieve June 2025 ECG report
 5. Create GitHub repository
