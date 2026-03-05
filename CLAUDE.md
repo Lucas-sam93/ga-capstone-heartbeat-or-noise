@@ -1,6 +1,6 @@
 # CLAUDE.md — Capstone Project Persistent Guide
 Last updated: March 2026
-Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 rebuild with UMass Simband pending.
+Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 primary validation pivoted to MIMIC PERform AF dataset (Zenodo). CSV files downloaded. Structural verification pending.
 
 
 ### How to Update
@@ -84,20 +84,28 @@ Your role is Senior Data Science Mentor. You are not a code executor. You are a 
 - Distribution: 19.2% under 5s, 29.7% between 5-15s, 49% between 1-60 minutes
 - Pattern: Irregular — burst mode during active monitoring, opportunistic mode during passive wear
 
-### Layer 2 Primary Dataset — UMass Simband (UMMC-DB) [PENDING ACCESS]
-- **Source:** Synapse syn25005551 (registration required)
-- **Device:** Samsung Simband wrist-worn smartwatch — PPG optical sensor, 128 Hz
-- **Ground truth:** Simultaneous Holter ECG, cardiologist-labelled 30-second segments
-- **Labels:** NSR (0), AF (1), PAC/PVC (2), Noisy (4)
-- **Subjects:** 37-41 ambulatory clinic patients, approximately 10 with AF
-- **Role in project:** Primary Layer 2 validation — multi-subject wearable PPG with confirmed rhythm labels
-- **Status:** Dataset identified, Synapse access not yet obtained
-- **Requires:** PPG peak detection step (NeuroKit2 or HeartPy) before feature extraction
+### Layer 2 Primary Dataset — MIMIC PERform AF (Zenodo)
+- **Source:** https://doi.org/10.5281/zenodo.6807402
+- **Device:** Finger PPG — optical sensor, simultaneous ECG included
+- **Ground truth:** Pre-assigned clinical labels at subject level — AF or NSR
+- **Labels:** AF files = Abnormal (1), Non-AF files = Normal (0)
+- **Subjects:** 35 critically ill adults — 19 AF, 16 NSR
+- **Recording duration:** 10 minutes per subject
+- **File formats available:** CSV, MATLAB .mat, WFDB
+- **Format selected:** CSV — most straightforward for Python pipeline
+- **Role in project:** Primary Layer 2 validation — real PPG with pre-labeled binary ground truth, no access barrier
+- **Status:** Downloaded from Zenodo. CSV structure verification pending.
+- **Pivot rationale:** Simband access unavailable before deadline. MIMIC PERform AF satisfies all three validation requirements: wearable PPG signal, both Normal and Abnormal subjects, pre-existing ground truth labels.
+- **Requires:** PPG peak detection step (NeuroKit2) to extract RR intervals before feature extraction. Sampling rate to be confirmed from CSV files.
+
+### UMass Simband — SUPERSEDED
+- **Status:** Access not obtained before deadline. Replaced by MIMIC PERform AF.
+- **Retained for reference only.** Do not attempt to reactivate as primary dataset.
 
 ### Signal Modality Hierarchy
 1. 12-lead clinical ECG (hospital-grade — Lucas's June 2025 ECG)
 2. Single-lead consumer ECG (Apple Watch Series 4+) — NOT available on Lucas's device
-3. PPG-derived HRV (Apple Watch SE / Samsung Simband)
+3. PPG-derived HRV (Apple Watch SE / MIMIC PERform AF finger PPG)
 
 ---
 
@@ -105,7 +113,7 @@ Your role is Senior Data Science Mentor. You are not a code executor. You are a 
 
 Eight features. All are time domain or statistical features derivable from both clinical ECG and wearable PPG data. Locked before feature engineering began. Cannot be changed.
 
-| Feature | Description | Apple Watch Source | Simband Source |
+| Feature | Description | Apple Watch Source | MIMIC PERform AF Source |
 |---|---|---|---|
 | RMSSD | Beat-to-beat variability magnitude | Approximated from SDNN x 0.85 | Computed from PPG-derived RR intervals |
 | SDNN | Total HRV across recording window | Direct from HRV records | Computed from PPG-derived RR intervals |
@@ -228,23 +236,23 @@ Two plausible non-mutually-exclusive explanations:
 2. Behavioural confound — reduced training intensity in pre-anchor period may have shifted HRV toward more regular patterns interpreted as normal by the model.
 
 ### N=1 Structural Limitation
-Personal Apple Watch data is structurally weak for this validation — single individual, one event, approximated HRV, no comparison group. Null result motivates UMass Simband as primary Layer 2 validation.
+Personal Apple Watch data is structurally weak for this validation — single individual, one event, approximated HRV, no comparison group. Null result motivated pivot to MIMIC PERform AF as primary Layer 2 validation.
 
 ---
 
-## Layer 2 Rebuild — UMass Simband Primary Validation [PENDING]
+## Layer 2 Rebuild — MIMIC PERform AF Primary Validation
 
 ### Rationale for Pivot
-Apple Watch N=1 limitations identified during analysis. The research question is better answered with a multi-subject wearable dataset with confirmed labels. Pivot motivated by structural weakness of N=1 design, not by desire to rescue null result. Sequence documented transparently.
+Apple Watch N=1 limitations identified during analysis. The research question is better answered with a multi-subject wearable dataset with confirmed labels. Simband access unavailable before deadline. MIMIC PERform AF (Zenodo) selected as deadline-compatible alternative satisfying all three validation requirements. Pivot motivated by structural weakness of N=1 design and access constraints — not by desire to rescue null result. Sequence documented transparently.
 
-### Simband Implementation Plan
-1. Register Synapse account and request access to syn25005551
-2. Assess dataset structure and segment lengths
-3. Implement PPG peak detection (NeuroKit2 or HeartPy) to extract RR intervals from 128 Hz PPG
-4. Extract 8 features from RR intervals using locked feature set
-5. Apply scaler and SVM — NO retraining, NO threshold adjustment
-6. Evaluate sensitivity, specificity, AUROC against Holter ECG ground truth
-7. Window parameters to be decided after examining Simband record structure
+### MIMIC PERform AF Implementation Plan
+1. Unzip CSV files and verify column structure — confirm PPG column name and sampling rate
+2. Implement PPG peak detection (NeuroKit2) to extract RR intervals from finger PPG
+3. Extract 8 features from RR intervals using locked feature set — one 10-minute window per subject
+4. Apply scaler with transform() only — NO fit_transform(), NO retraining
+5. Apply SVM at fixed threshold 0.34 — NO threshold adjustment
+6. Evaluate sensitivity, specificity, AUROC against pre-assigned AF/NSR labels
+7. Run gap quantification (KS test) against Physionet training distribution
 
 ---
 
@@ -258,7 +266,7 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 | Abnormal class composition | AF + Other combined | Screening tool flags any anomaly worth clinical evaluation |
 | Feature constraint | Wearable-extractable only | Ensures valid generalisation test |
 | Frequency domain features | Excluded permanently | Consumer wearables do not expose raw beat intervals |
-| Apple Watch role | N=1 case study appendix | Null result documented; Simband is primary validation |
+| Apple Watch role | N=1 case study appendix | Null result documented; MIMIC PERform AF is primary validation |
 | Evaluation priority | Sensitivity over accuracy | Missing true positive more dangerous in screening |
 | Class imbalance handling | class_weight=balanced | Preserves training data integrity |
 | Classification threshold | 0.34 (validation-optimised) | Prioritises sensitivity for screening context |
@@ -268,8 +276,10 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 | Step size (Apple Watch) | 15 minutes | 50% overlap for smooth temporal coverage |
 | RMSSD approximation (Apple Watch) | SDNN x 0.85 | Raw beat intervals unavailable from Apple Watch |
 | Apple Watch merge strategy | Drop windows with no HRV | No imputation |
-| Layer 2 primary validation | UMass Simband | Multi-subject PPG with Holter ECG ground truth |
+| Layer 2 primary validation | MIMIC PERform AF (Zenodo) | Real PPG, pre-labeled binary ground truth, no access barrier, deadline-compatible |
 | Mann-Whitney test direction | alternative='greater' | Pre-registered, maintained despite null finding |
+| Window size (MIMIC PERform AF) | Single 10-minute window per subject | Preserves Layer 1 pipeline contract — one feature vector per subject, one prediction, one label |
+| Label mapping (MIMIC PERform AF) | AF files = 1 (Abnormal), Non-AF files = 0 (Normal) | Pre-assigned at file level, no derivation needed, maps directly to binary framing |
 
 ---
 
@@ -314,8 +324,9 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Apple Watch feature pipeline implemented (src/apple_watch_features.py)
 - [x] Apple Watch feature matrix built (1,997 windows)
 - [x] Feature gap analysis completed (KS — 5 large, 3 moderate, 0 small)
-- [ ] Simband PPG peak detection pipeline (pending access)
-- [ ] Simband feature extraction (pending access)
+- [ ] MIMIC PERform AF CSV structure verified (sampling rate, PPG column confirmed)
+- [ ] MIMIC PERform AF PPG peak detection pipeline implemented (src/mimic_perform_af_features.py)
+- [ ] MIMIC PERform AF feature extraction complete
 
 ### Phase 4 — Model Development
 - [x] Stratified split applied
@@ -335,8 +346,9 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Probability scores generated
 - [x] Mann-Whitney U tests complete (null result)
 - [ ] Cell 7 tier assessment (pending)
-- [ ] Simband access obtained
-- [ ] Simband pipeline implemented and evaluated
+- [x] MIMIC PERform AF dataset downloaded from Zenodo
+- [ ] MIMIC PERform AF CSV structure verified
+- [ ] MIMIC PERform AF pipeline implemented and evaluated
 - [ ] ECG report retrieved
 - [ ] Final narrative written
 
@@ -359,9 +371,9 @@ C:\Projects\GA Capstone Project\
 │   README.md | requirements.txt | CLAUDE.md
 │
 ├───data\
-│   ├───physionet\       # 8,528 .mat ECG files + REFERENCE-v3.csv
-│   ├───apple_watch\     # Personal Apple Watch CSV exports
-│   ├───simband\         # UMass Simband PPG data (pending)
+│   ├───physionet\           # 8,528 .mat ECG files + REFERENCE-v3.csv
+│   ├───apple_watch\         # Personal Apple Watch CSV exports
+│   ├───mimic_perform_af\    # MIMIC PERform AF CSV files (Zenodo — downloaded)
 │   └───processed\
 │
 ├───notebooks\
@@ -369,14 +381,14 @@ C:\Projects\GA Capstone Project\
 │   ├───02_feature_engineering.ipynb
 │   ├───03_modelling.ipynb
 │   ├───04_layer2_analysis.ipynb       # Apple Watch case study (Cells 1-6 complete)
-│   └───05_simband_validation.ipynb    # Pending
+│   └───05_mimic_perform_af_validation.ipynb    # Pending — Layer 2 primary validation
 │
 ├───src\
 │   ├───features.py
 │   ├───preprocess.py
 │   ├───evaluate.py
-│   ├───apple_watch_features.py        # Complete
-│   └───simband_features.py            # Pending
+│   ├───apple_watch_features.py                 # Complete
+│   └───mimic_perform_af_features.py            # Pending
 │
 └───outputs\
     ├───figures\
@@ -428,11 +440,11 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 
 **Layer 2 — Apple Watch (N=1):** Cells 1-6 complete. Null result. Tier assessment (Cell 7) pending. Retained as case study appendix.
 
-**Layer 2 — Simband (Primary):** Pending Synapse access to syn25005551.
+**Layer 2 — MIMIC PERform AF (Primary):** Dataset downloaded from Zenodo (doi.org/10.5281/zenodo.6807402). 35 subjects — 19 AF (Abnormal), 16 NSR (Normal). 10-minute finger PPG recordings with pre-assigned binary labels. Single 10-minute window per subject locked. Awaiting CSV structure verification before implementation begins.
 
 **Immediate next steps:**
-1. Run Cell 7 tier assessment
-2. Register Synapse and request Simband access
-3. Once access granted: implement src/simband_features.py and notebooks/05_simband_validation.ipynb
+1. Run Cell 7 tier assessment in 04_layer2_analysis.ipynb
+2. Unzip CSV files and verify column structure — confirm PPG column name and sampling rate
+3. Implement src/mimic_perform_af_features.py and notebooks/05_mimic_perform_af_validation.ipynb once structure confirmed
 4. Retrieve June 2025 ECG report
 5. Create GitHub repository
