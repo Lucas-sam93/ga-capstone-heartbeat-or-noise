@@ -415,6 +415,12 @@ C:\Projects\GA Capstone Project\
 3. Wait for explicit approval before proceeding
 4. Flag any methodological decision explicitly
 
+### Claude Code Reporting Format 
+Report back in this format only:
+STATUS: pass/fail
+COUNTS: [key numbers only]
+WARNINGS: [verbatim only, none if clean]
+
 ### Code Standards
 - All reusable functions in src/ — not notebooks
 - Notebooks call functions, never define them
