@@ -1,0 +1,4 @@
+tier,result
+Tier 1 — Pipeline execution,PASS
+Tier 2 — Sens >= 80% & Spec >= 75%,FAIL
+Tier 3 — AUROC >= 0.85,PASS

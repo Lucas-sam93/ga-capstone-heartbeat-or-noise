@@ -1,0 +1,9 @@
+feature,ks_statistic,p_value,direction,magnitude
+rmssd,0.3747,6.686197415126283e-05,MIMIC higher,Large
+sdnn,0.3236,0.0009515756245785616,MIMIC higher,Large
+mean_rr,0.3853,3.646504038618992e-05,MIMIC lower,Large
+pnn50,0.4739,1.0430428366933584e-07,MIMIC higher,Large
+hr_mean,0.3853,3.646504038618992e-05,MIMIC higher,Large
+hr_std,0.3373,0.0004865331445670026,MIMIC higher,Large
+rr_skewness,0.5186,3.066870643575644e-09,MIMIC higher,Large
+rr_kurtosis,0.4121,7.188761346176224e-06,MIMIC higher,Large
