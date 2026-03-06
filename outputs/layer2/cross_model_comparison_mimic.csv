@@ -1,0 +1,5 @@
+model,threshold,sensitivity,specificity,auroc,f1,TP,FP,FN,TN
+Logistic Regression,0.41,1.0,0.1875,0.7368,0.7451,19,13,0,3
+Random Forest,0.37,1.0,0.0625,0.8503,0.717,19,15,0,1
+XGBoost,0.34,1.0,0.125,0.8322,0.7308,19,14,0,2
+SVM,0.34,1.0,0.125,0.8586,0.7308,19,14,0,2

@@ -373,7 +373,7 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 | probability_scores.csv | outputs/layer2/ | 1,997 rows | Complete |
 | mann_whitney_results.csv | outputs/layer2/ | 3 rows | Complete |
 | tier_assessment.csv | outputs/layer2/ | Apple Watch — 3 rows | Complete |
-| mimic_perform_af_features.csv | outputs/layer2/ | 35 rows, 11 columns | Complete |
+| figures_log.csv | outputs/figures/ | Running manifest of all figures | Created on first figure output |
 | gap_quantification_mimic.csv | outputs/layer2/ | 8 rows | Complete |
 | probability_scores_mimic.csv | outputs/layer2/ | 35 rows | Complete |
 | tier_assessment_mimic.csv | outputs/layer2/ | 3 rows | Complete |
@@ -428,6 +428,13 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 - [x] MIMIC PERform AF pipeline implemented and evaluated
 - [x] src/mimic_perform_af_features.py complete
 - [x] notebooks/05_mimic_perform_af_validation.ipynb complete (Cells 1-6)
+- [ ] Cross-model comparison on MIMIC (all four Layer 1 models, fixed thresholds)
+- [ ] Conditional LR branch — if LR specificity > SVM, run parallel analysis
+- [ ] Threshold recalibration ROC analysis (Youden's J)
+- [ ] Feature subset experiment (high-KS feature removal)
+- [ ] Three-way feature distribution plot
+- [ ] Singapore false positive burden calculation
+- [ ] figures_log.csv initialised and maintained
 - [ ] ECG report retrieved
 - [ ] Final narrative written
 
@@ -479,6 +486,7 @@ C:\Projects\GA Capstone Project\
 │
 └───outputs\
     ├───figures\
+    │   └───figures_log.csv                     # Running manifest — created on first figure output
     ├───models\
     └───layer2\
 ```
@@ -506,6 +514,32 @@ WARNINGS: [verbatim only, none if clean]
 - Input validation and docstrings in all functions
 - os.path.join() for all paths
 - Raw data files never modified
+
+### Figure Logging Standards — Non-Negotiable
+Every figure produced must satisfy all of the following without exception:
+
+**Saving**
+- Saved to outputs/figures/ with a descriptive filename: {analysis_step}_{description}_{year}.png
+- Example: mimic_roc_curve_svm_lr_comparison_2026.png
+- Example: mimic_feature_distributions_threeway_2026.png
+
+**Manifest entry**
+- Every saved figure is logged as a new row in outputs/figures/figures_log.csv
+- Columns: filename | description | notebook | cell_reference | analysis_step | date_produced
+- If figures_log.csv does not exist, create it before saving the first figure
+
+**Notebook documentation**
+- Every cell that produces a figure must have a markdown cell directly above it containing:
+  - Section heading
+  - What the figure shows
+  - Why it was produced (which analysis step it supports)
+  - Expected interpretation
+
+**Styling consistency**
+- All figures use the same colour palette, font sizes, and axis label conventions
+- Figures saved at 150 dpi minimum
+- All axes labelled with units where applicable
+- All figures include a title
 
 ### Decision Protocol
 Every decision requires Lucas's explicit approval. No exceptions.
@@ -538,8 +572,14 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 **App — Cardiac Screening Web App:** Architecture locked. Implementation prompt ready. Pending Claude Code execution.
 
 **Immediate next steps:**
-1. Execute app build via Claude Code
-2. Stress test with Apple Health export
-3. Retrieve June 2025 ECG report
-4. Write final narrative
-5. Create GitHub repository
+1. Confirm outputs/models/ contents — verify all four Layer 1 model joblib files are saved
+2. Cross-model comparison on MIMIC (SVM, LR, RF, XGBoost — fixed thresholds, no retraining)
+3. Conditional branch — if LR specificity > SVM specificity, run all subsequent steps for both models
+4. Threshold recalibration ROC analysis on MIMIC (Youden's J optimal threshold)
+5. Feature subset experiment (drop high-KS features, observe specificity recovery)
+6. Three-way feature distribution plot (Physionet training vs MIMIC NSR vs MIMIC AF)
+7. Singapore false positive burden calculation
+8. Execute app build via Claude Code
+9. Retrieve June 2025 ECG report
+10. Write final narrative
+11. Create GitHub repository
