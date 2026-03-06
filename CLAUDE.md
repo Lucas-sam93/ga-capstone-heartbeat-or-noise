@@ -1,6 +1,6 @@
 # CLAUDE.md — Capstone Project Persistent Guide
 Last updated: March 2026
-Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 primary validation pivoted to MIMIC PERform AF dataset (Zenodo). CSV files downloaded. Structural verification pending.
+Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 MIMIC PERform AF validation complete. Research loop closed. App development in progress.
 
 
 ### How to Update
@@ -101,7 +101,7 @@ Your role is Senior Data Science Mentor. You are not a code executor. You are a 
 - **File formats available:** CSV, MATLAB .mat, WFDB
 - **Format selected:** CSV — most straightforward for Python pipeline
 - **Role in project:** Primary Layer 2 validation — real PPG with pre-labeled binary ground truth, no access barrier
-- **Status:** CSV structure verified. Implementation ready to begin.
+- **Status:** Complete. Feature extraction, gap quantification, model inference, and tier assessment all executed.
 - **Pivot rationale:** Simband access unavailable before deadline. MIMIC PERform AF satisfies all three validation requirements: wearable PPG signal, both Normal and Abnormal subjects, pre-existing ground truth labels.
 - **Requires:** PPG peak detection step (NeuroKit2, sampling_rate=125) to extract RR intervals before feature extraction.
 
@@ -264,6 +264,64 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 
 ---
 
+## Layer 2 — MIMIC PERform AF Primary Validation — Complete (March 2026)
+
+### Feature Matrix
+- Subjects: 35 (19 AF = Abnormal, 16 NSR = Normal)
+- Quality tier: All 35 subjects green (≥300 peaks detected). Zero amber, zero red, zero skipped.
+- Window: Single 20-minute window per subject
+- Output: outputs/layer2/mimic_perform_af_features.csv — 35 rows, 11 columns (subject_id, label, quality_tier + 8 features)
+
+### Gap Quantification (KS Test vs Physionet Training Distribution)
+All 8 features show LARGE KS distances (KS ≥ 0.3). All p-values ~0.
+
+| Feature | KS Statistic | Direction |
+|---|---|---|
+| rr_skewness | 0.5186 | MIMIC higher |
+| pnn50 | 0.4739 | MIMIC higher |
+| rr_kurtosis | 0.4121 | MIMIC higher |
+| mean_rr | 0.3853 | MIMIC lower |
+| hr_mean | 0.3853 | MIMIC higher |
+| hr_std | 0.3373 | MIMIC higher |
+| sdnn | 0.3236 | MIMIC higher |
+| rmssd | 0.3747 | MIMIC higher |
+
+Summary: 8 large (KS > 0.3), 0 moderate, 0 small. Worse than Apple Watch (5 large, 3 moderate). MIMIC subjects (critically ill ICU patients) show systematically higher HRV variability — clinically plausible.
+
+### Probability Score Summary
+- Mean: 0.8027 | Median: 0.8414
+- Predicted Abnormal: 33 of 35 | Predicted Normal: 2 of 35
+- Model pushing almost all subjects toward Abnormal — modality gap producing systematic score inflation
+
+### Evaluation Results — SVM at Fixed Threshold 0.34
+- Sensitivity: 100% (19/19 AF cases correctly flagged — zero false negatives)
+- Specificity: 12.5% (2/16 NSR correct, 14/16 false positives)
+- AUROC: 0.8586
+- F1: 0.7308
+- Confusion matrix: TP=19, FP=14, FN=0, TN=2
+
+### Tier Assessment
+- Tier 1 (pipeline execution): PASS
+- Tier 2 (Sens ≥80% AND Spec ≥75%): FAIL — specificity 12.5%
+- Tier 3 (AUROC ≥0.85): PASS — AUROC 0.8586
+
+### Interpretation
+100% sensitivity with 12.5% specificity is coherent and mechanistically explained. The KS gap quantification directly predicts this outcome — all 8 features shifted toward values the model associates with Abnormal. Threshold 0.34 was calibrated on Physionet ECG. When applied to a population whose baseline features already appear abnormal to the model, almost everything crosses threshold.
+
+AUROC 0.86 is the critical finding: the model retains genuine discriminative ability across modalities. The specificity failure is a threshold calibration problem caused by the modality gap — not a failure of the underlying model to distinguish rhythm patterns.
+
+### Known Warning
+sklearn UserWarning during inference: scaler and model fitted with feature names but received array without feature names. Cosmetic only — does not affect output values. No fix required.
+
+### Complete Layer 2 Picture
+Two datasets, consistent story:
+- Apple Watch (N=1): Null result. Scores not elevated above baseline. Explained by modality gap and N=1 structural limitations.
+- MIMIC PERform AF (N=35): 100% sensitivity, 12.5% specificity, AUROC 0.86. Model catches every abnormal case but threshold miscalibration from modality gap produces excessive false positives.
+
+Both point to the same conclusion: modality gap is the central obstacle to direct generalisation. AUROC confirms discriminative signal is present. Domain adaptation or threshold recalibration would likely recover specificity.
+
+---
+
 ## Key Methodological Decisions — All Locked
 
 | Decision | Choice | Justification |
@@ -289,6 +347,12 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 | Window size (MIMIC PERform AF) | Single 20-minute window per subject | Confirmed recording duration is 20 min — preserves Layer 1 pipeline contract, longer window strengthens HRV feature reliability |
 | Label mapping (MIMIC PERform AF) | AF files = 1 (Abnormal), Non-AF files = 0 (Normal) | Pre-assigned at file level, no derivation needed, maps directly to binary framing |
 | PPG null handling (MIMIC PERform AF) | Linear interpolation pre-peak-detection | 8 of 35 files affected, worst case 1.15% — standard PPG cleaning practice, documentable and defensible |
+| App input format | Apple Health CSV export (heart rate time series) | Most common consumer wearable export format, proven pipeline exists from Apple Watch analysis |
+| App window strategy | Percentage of windows above threshold | Most honest representation, mirrors clinical Holter monitoring, neutralises single-window false positive problem |
+| App risk tiers | 3-band: Low <10% flagged, Intermediate 10-40%, High >40% | Clinically grounded, reduces false positive panic, consistent with ACC/AHA screening frameworks |
+| App data truncation | Client-side JavaScript filters to most recent 90 days before upload | Solves file size problem at source — full multi-year export never transmitted to server |
+| App backend | FastAPI | Native Python, minimal boilerplate, serves joblib directly |
+| App frontend | Plain HTML/CSS/JS served by FastAPI | Consumer-facing product appearance for demo presentation |
 
 ---
 
@@ -308,7 +372,11 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 | gap_quantification.csv | outputs/layer2/ | 8 rows | Complete |
 | probability_scores.csv | outputs/layer2/ | 1,997 rows | Complete |
 | mann_whitney_results.csv | outputs/layer2/ | 3 rows | Complete |
-| tier_assessment.csv | outputs/layer2/ | Pending Cell 7 | Pending |
+| tier_assessment.csv | outputs/layer2/ | Apple Watch — 3 rows | Complete |
+| mimic_perform_af_features.csv | outputs/layer2/ | 35 rows, 11 columns | Complete |
+| gap_quantification_mimic.csv | outputs/layer2/ | 8 rows | Complete |
+| probability_scores_mimic.csv | outputs/layer2/ | 35 rows | Complete |
+| tier_assessment_mimic.csv | outputs/layer2/ | 3 rows | Complete |
 
 ---
 
@@ -334,8 +402,8 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Apple Watch feature matrix built (1,997 windows)
 - [x] Feature gap analysis completed (KS — 5 large, 3 moderate, 0 small)
 - [x] MIMIC PERform AF CSV structure verified (125 Hz, PPG column confirmed, 150,000 samples per file)
-- [ ] MIMIC PERform AF PPG peak detection pipeline implemented (src/mimic_perform_af_features.py)
-- [ ] MIMIC PERform AF feature extraction complete
+- [x] MIMIC PERform AF PPG peak detection pipeline implemented (src/mimic_perform_af_features.py)
+- [x] MIMIC PERform AF feature extraction complete (35 subjects, all green tier)
 
 ### Phase 4 — Model Development
 - [x] Stratified split applied
@@ -354,10 +422,12 @@ Apple Watch N=1 limitations identified during analysis. The research question is
 - [x] Gap quantification complete
 - [x] Probability scores generated
 - [x] Mann-Whitney U tests complete (null result)
-- [ ] Cell 7 tier assessment (pending)
+- [x] Cell 7 tier assessment complete (Apple Watch — Tier 1 PASS, Tier 2 FAIL, Tier 3 FAIL)
 - [x] MIMIC PERform AF dataset downloaded from Zenodo
 - [x] MIMIC PERform AF CSV structure verified
-- [ ] MIMIC PERform AF pipeline implemented and evaluated
+- [x] MIMIC PERform AF pipeline implemented and evaluated
+- [x] src/mimic_perform_af_features.py complete
+- [x] notebooks/05_mimic_perform_af_validation.ipynb complete (Cells 1-6)
 - [ ] ECG report retrieved
 - [ ] Final narrative written
 
@@ -389,15 +459,23 @@ C:\Projects\GA Capstone Project\
 │   ├───01_data_exploration.ipynb
 │   ├───02_feature_engineering.ipynb
 │   ├───03_modelling.ipynb
-│   ├───04_layer2_analysis.ipynb       # Apple Watch case study (Cells 1-6 complete)
-│   └───05_mimic_perform_af_validation.ipynb    # Pending — Layer 2 primary validation
+│   ├───04_layer2_analysis.ipynb                # Apple Watch case study — Complete
+│   └───05_mimic_perform_af_validation.ipynb    # MIMIC PERform AF validation — Complete
 │
 ├───src\
 │   ├───features.py
 │   ├───preprocess.py
 │   ├───evaluate.py
 │   ├───apple_watch_features.py                 # Complete
-│   └───mimic_perform_af_features.py            # Pending
+│   └───mimic_perform_af_features.py            # Complete
+│
+├───app\                                        # Cardiac screening web app — In progress
+│   ├───main.py
+│   ├───pipeline.py
+│   ├───requirements.txt
+│   ├───models\                                 # Copy scaler.joblib and selected_model.joblib here
+│   └───static\
+│       └───index.html
 │
 └───outputs\
     ├───figures\
@@ -453,13 +531,15 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 
 **Layer 1:** Complete. SVM: sensitivity 84.4%, specificity 87.3%, AUROC 0.9080.
 
-**Layer 2 — Apple Watch (N=1):** Cells 1-6 complete. Null result. Tier assessment (Cell 7) pending. Retained as case study appendix.
+**Layer 2 — Apple Watch (N=1):** Complete. Null result — pre_anchor scores not elevated above baseline. Tier 1 PASS, Tier 2 FAIL, Tier 3 FAIL. Retained as exploratory case study appendix.
 
-**Layer 2 — MIMIC PERform AF (Primary):** CSV structure verified. 35 subjects — 19 AF (Abnormal), 16 NSR (Normal). 125 Hz finger PPG, 20-minute recordings, 150,000 samples per file. Single 20-minute window per subject locked. Linear interpolation for PPG nulls locked. Ready to implement src/mimic_perform_af_features.py.
+**Layer 2 — MIMIC PERform AF (Primary):** Complete. 35 subjects, all green tier. Sensitivity 100%, Specificity 12.5%, AUROC 0.8586. Tier 1 PASS, Tier 2 FAIL (specificity), Tier 3 PASS. Modality gap (8 large KS distances) explains threshold miscalibration. AUROC confirms discriminative signal transfers across modalities. Research loop closed.
+
+**App — Cardiac Screening Web App:** Architecture locked. Implementation prompt ready. Pending Claude Code execution.
 
 **Immediate next steps:**
-1. Run Cell 7 tier assessment in 04_layer2_analysis.ipynb
-2. Implement src/mimic_perform_af_features.py
-3. Implement notebooks/05_mimic_perform_af_validation.ipynb
-4. Retrieve June 2025 ECG report
+1. Execute app build via Claude Code
+2. Stress test with Apple Health export
+3. Retrieve June 2025 ECG report
+4. Write final narrative
 5. Create GitHub repository
