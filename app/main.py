@@ -29,6 +29,12 @@ _STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Render."""
+    return {"status": "ok"}
+
+
 @app.api_route("/", methods=["GET", "HEAD"])
 async def serve_index():
     """Serve the frontend HTML."""
