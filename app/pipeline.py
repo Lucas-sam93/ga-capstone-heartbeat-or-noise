@@ -151,28 +151,30 @@ def process_and_predict(df: pd.DataFrame) -> dict:
     cutoff = max_date - pd.Timedelta(days=90)
     df = df[df["startDate"] >= cutoff]
 
-    # --- b. Sort ascending ---
+    # --- b. Sort ascending and convert to numpy for speed ---
     df = df.sort_values("startDate").reset_index(drop=True)
+    timestamps = df["startDate"].values  # datetime64[ns] numpy array
+    values = df["Value"].values.astype(float)
 
     # --- c. Build 30-minute windows, 15-minute step ---
-    window_size = pd.Timedelta(minutes=30)
-    step_size = pd.Timedelta(minutes=15)
-    start = df["startDate"].min()
-    end = df["startDate"].max()
+    window_ns = np.timedelta64(30, "m")
+    step_ns = np.timedelta64(15, "m")
+    start = timestamps[0]
+    end = timestamps[-1]
 
     features_list = []
     t = start
-    while t + window_size <= end:
-        w_end = t + window_size
-        mask = (df["startDate"] >= t) & (df["startDate"] < w_end)
-        window = df.loc[mask, "Value"].values
+    while t + window_ns <= end:
+        w_end = t + window_ns
+        i_start = np.searchsorted(timestamps, t, side="left")
+        i_end = np.searchsorted(timestamps, w_end, side="left")
 
-        t += step_size
+        t += step_ns
 
-        if len(window) < 10:
+        if i_end - i_start < 10:
             continue
 
-        hr = window.astype(float)
+        hr = values[i_start:i_end]
         rr = 60000.0 / hr  # RR intervals in ms
 
         rr_diff = np.diff(rr)
