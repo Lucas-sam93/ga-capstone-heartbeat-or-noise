@@ -1,0 +1,8 @@
+test,metric,value,ci_lower,ci_upper
+Bootstrap AUROC,auroc,0.8631,0.7246,0.972
+Bootstrap Recalibrated,sensitivity,0.8056,0.5712,1.0
+Bootstrap Recalibrated,specificity,0.9131,0.7273,1.0
+Bootstrap Recalibrated,f1,0.8534,0.7059,0.9631
+LOOCV Recalibrated,sensitivity,0.6842,,
+LOOCV Recalibrated,specificity,0.8125,,
+LOOCV Recalibrated,f1,0.7429,,

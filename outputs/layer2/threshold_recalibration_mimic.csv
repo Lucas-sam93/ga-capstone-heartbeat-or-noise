@@ -1,0 +1,2 @@
+model,fixed_threshold,fixed_sens,fixed_spec,fixed_f1,optimal_threshold,optimal_sens,optimal_spec,optimal_f1,fixed_TP,fixed_FP,fixed_FN,fixed_TN,optimal_TP,optimal_FP,optimal_FN,optimal_TN
+SVM,0.34,1.0,0.125,0.7308,0.8424,0.7368,0.9375,0.8235,19,14,0,2,14,1,5,15
