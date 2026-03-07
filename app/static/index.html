@@ -1309,6 +1309,13 @@
                 });
                 clearTimeout(timeoutId);
 
+                var contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    errorBox.textContent = "Server error — the server may be starting up. Please try again in 30 seconds.";
+                    errorBox.style.display = "block";
+                    return;
+                }
+
                 var data = await response.json();
 
                 if (!response.ok) {
