@@ -1142,10 +1142,11 @@
 
         /**
          * For ZIP files (Apple Health Export.zip), extract export.xml
-         * client-side using JSZip, then stream-parse it for HR records.
+         * and stream-decompress + parse simultaneously — never holds the
+         * full decompressed XML in memory.
          */
         async function extractHrFromZip(file) {
-            btnText.textContent = "Extracting ZIP\u2026";
+            btnText.textContent = "Opening ZIP\u2026";
             var zip = await JSZip.loadAsync(file);
 
             // Find export.xml inside the ZIP
@@ -1163,10 +1164,62 @@
                 );
             }
 
-            // Extract as blob, then run through the XML streaming parser
-            var xmlBlob = await xmlEntry.async("blob");
-            var xmlFile = new File([xmlBlob], "export.xml", { type: "text/xml" });
-            return await extractHrFromXml(xmlFile);
+            // Stream-decompress and regex-parse in one pass
+            var records = [];
+            var re = /<Record[^>]*HKQuantityTypeIdentifierHeartRate[^>]*>/g;
+            var reStart = /startDate="([^"]+)"/;
+            var reValue = /\bvalue="([^"]+)"/;
+            var leftover = "";
+            var bytesRead = 0;
+            var uncompSize = xmlEntry._data ? (xmlEntry._data.uncompressedSize || 0) : 0;
+
+            return new Promise(function (resolve, reject) {
+                xmlEntry.internalStream("string")
+                    .on("data", function (chunk) {
+                        bytesRead += chunk.length;
+                        if (uncompSize > 0) {
+                            var pct = Math.min(99, Math.round((bytesRead / uncompSize) * 100));
+                            btnText.textContent = "Scanning XML\u2026 " + pct + "%";
+                        } else {
+                            btnText.textContent = "Scanning XML\u2026";
+                        }
+
+                        var text = leftover + chunk;
+                        var match;
+                        var lastIndex = 0;
+                        while ((match = re.exec(text)) !== null) {
+                            var tag = match[0];
+                            var sm = reStart.exec(tag);
+                            var vm = reValue.exec(tag);
+                            if (sm && vm) {
+                                records.push(sm[1] + "," + vm[1]);
+                            }
+                            lastIndex = re.lastIndex;
+                        }
+
+                        var tailStart = text.lastIndexOf("<Record", lastIndex);
+                        if (tailStart > 0 && tailStart > lastIndex) {
+                            leftover = text.slice(tailStart);
+                        } else {
+                            leftover = text.slice(Math.max(0, text.length - 500));
+                        }
+                        re.lastIndex = 0;
+                    })
+                    .on("error", function (err) {
+                        reject(new Error("Failed to read export.xml from ZIP: " + err.message));
+                    })
+                    .on("end", function () {
+                        if (records.length === 0) {
+                            reject(new Error("No heart rate records found in the XML file."));
+                            return;
+                        }
+                        var csv = "startDate,value,type\n" +
+                            records.map(function (r) {
+                                return r + ",HKQuantityTypeIdentifierHeartRate";
+                            }).join("\n");
+                        resolve(new File([csv], "apple_health_hr.csv", { type: "text/csv" }));
+                    });
+            });
         }
 
         /**
