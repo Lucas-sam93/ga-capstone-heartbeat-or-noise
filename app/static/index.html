@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1140,6 +1141,35 @@
         }
 
         /**
+         * For ZIP files (Apple Health Export.zip), extract export.xml
+         * client-side using JSZip, then stream-parse it for HR records.
+         */
+        async function extractHrFromZip(file) {
+            btnText.textContent = "Extracting ZIP\u2026";
+            var zip = await JSZip.loadAsync(file);
+
+            // Find export.xml inside the ZIP
+            var xmlEntry = null;
+            zip.forEach(function (path, entry) {
+                if (!entry.dir && path.toLowerCase().endsWith("export.xml")) {
+                    xmlEntry = entry;
+                }
+            });
+
+            if (!xmlEntry) {
+                throw new Error(
+                    "ZIP file does not contain an export.xml \u2014 " +
+                    "please upload the Apple Health export ZIP."
+                );
+            }
+
+            // Extract as blob, then run through the XML streaming parser
+            var xmlBlob = await xmlEntry.async("blob");
+            var xmlFile = new File([xmlBlob], "export.xml", { type: "text/xml" });
+            return await extractHrFromXml(xmlFile);
+        }
+
+        /**
          * For large XML files (Apple Health export.xml can be 1-2 GB),
          * extract heart rate records client-side using streaming text
          * reader + regex, then build a small CSV to upload.
@@ -1215,8 +1245,11 @@
                 var uploadFile = file;
                 var name = file.name.toLowerCase();
 
-                // Client-side XML extraction for large XML files
-                if (name.endsWith(".xml") && file.size > 50 * 1024 * 1024) {
+                // Client-side extraction — keeps large files out of server memory
+                if (name.endsWith(".zip")) {
+                    uploadFile = await extractHrFromZip(file);
+                    btnText.textContent = "Analysing\u2026";
+                } else if (name.endsWith(".xml")) {
                     uploadFile = await extractHrFromXml(file);
                     btnText.textContent = "Analysing\u2026";
                 }
