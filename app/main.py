@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from pipeline import parse_apple_health_export, parse_apple_health_xml, process_and_predict
+from .pipeline import parse_apple_health_export, parse_apple_health_xml, process_and_predict
 
 app = FastAPI(title="BeatCheck", version="1.0.0")
 
