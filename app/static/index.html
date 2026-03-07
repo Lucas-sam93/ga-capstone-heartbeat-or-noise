@@ -1300,7 +1300,7 @@
                 formData.append("file", uploadFile);
 
                 var controller = new AbortController();
-                var timeoutId = setTimeout(function () { controller.abort(); }, 60000);
+                var timeoutId = setTimeout(function () { controller.abort(); }, 120000);
 
                 var response = await fetch("/analyse", {
                     method: "POST",
@@ -1346,7 +1346,7 @@
 
             } catch (err) {
                 if (err.name === "AbortError") {
-                    errorBox.textContent = "Request timed out \u2014 the server may be starting up. Please try again in 30 seconds.";
+                    errorBox.textContent = "Request timed out \u2014 the server may be starting up. Please wait a moment and try again.";
                 } else {
                     errorBox.textContent = err.message || "Connection error \u2014 is the server running?";
                 }

@@ -29,7 +29,7 @@ _STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def serve_index():
     """Serve the frontend HTML."""
     return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
