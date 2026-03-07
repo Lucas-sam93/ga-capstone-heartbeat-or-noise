@@ -1142,11 +1142,22 @@
 
         /**
          * For ZIP files (Apple Health Export.zip), extract export.xml
-         * and stream-decompress + parse simultaneously — never holds the
-         * full decompressed XML in memory.
+         * and stream-decompress + parse simultaneously.
+         * Uses async("string") with chunked regex as fallback-safe approach.
          */
         async function extractHrFromZip(file) {
+            if (typeof JSZip === "undefined") {
+                throw new Error(
+                    "ZIP support failed to load. Please extract your " +
+                    "Export.zip and upload the export.xml file directly."
+                );
+            }
+
             btnText.textContent = "Opening ZIP\u2026";
+
+            // Yield to browser so the button text renders before heavy work
+            await new Promise(function (r) { requestAnimationFrame(r); });
+
             var zip = await JSZip.loadAsync(file);
 
             // Find export.xml inside the ZIP
@@ -1164,62 +1175,40 @@
                 );
             }
 
-            // Stream-decompress and regex-parse in one pass
+            btnText.textContent = "Extracting heart rate data\u2026";
+            await new Promise(function (r) { requestAnimationFrame(r); });
+
+            // Decompress to string — then regex-parse for HR records
+            var xmlStr = await xmlEntry.async("string");
+
             var records = [];
             var re = /<Record[^>]*HKQuantityTypeIdentifierHeartRate[^>]*>/g;
             var reStart = /startDate="([^"]+)"/;
             var reValue = /\bvalue="([^"]+)"/;
-            var leftover = "";
-            var bytesRead = 0;
-            var uncompSize = xmlEntry._data ? (xmlEntry._data.uncompressedSize || 0) : 0;
+            var match;
 
-            return new Promise(function (resolve, reject) {
-                xmlEntry.internalStream("string")
-                    .on("data", function (chunk) {
-                        bytesRead += chunk.length;
-                        if (uncompSize > 0) {
-                            var pct = Math.min(99, Math.round((bytesRead / uncompSize) * 100));
-                            btnText.textContent = "Scanning XML\u2026 " + pct + "%";
-                        } else {
-                            btnText.textContent = "Scanning XML\u2026";
-                        }
+            while ((match = re.exec(xmlStr)) !== null) {
+                var tag = match[0];
+                var sm = reStart.exec(tag);
+                var vm = reValue.exec(tag);
+                if (sm && vm) {
+                    records.push(sm[1] + "," + vm[1]);
+                }
+            }
 
-                        var text = leftover + chunk;
-                        var match;
-                        var lastIndex = 0;
-                        while ((match = re.exec(text)) !== null) {
-                            var tag = match[0];
-                            var sm = reStart.exec(tag);
-                            var vm = reValue.exec(tag);
-                            if (sm && vm) {
-                                records.push(sm[1] + "," + vm[1]);
-                            }
-                            lastIndex = re.lastIndex;
-                        }
+            // Free the large string from memory
+            xmlStr = null;
 
-                        var tailStart = text.lastIndexOf("<Record", lastIndex);
-                        if (tailStart > 0 && tailStart > lastIndex) {
-                            leftover = text.slice(tailStart);
-                        } else {
-                            leftover = text.slice(Math.max(0, text.length - 500));
-                        }
-                        re.lastIndex = 0;
-                    })
-                    .on("error", function (err) {
-                        reject(new Error("Failed to read export.xml from ZIP: " + err.message));
-                    })
-                    .on("end", function () {
-                        if (records.length === 0) {
-                            reject(new Error("No heart rate records found in the XML file."));
-                            return;
-                        }
-                        var csv = "startDate,value,type\n" +
-                            records.map(function (r) {
-                                return r + ",HKQuantityTypeIdentifierHeartRate";
-                            }).join("\n");
-                        resolve(new File([csv], "apple_health_hr.csv", { type: "text/csv" }));
-                    });
-            });
+            if (records.length === 0) {
+                throw new Error("No heart rate records found in the XML file.");
+            }
+
+            var csv = "startDate,value,type\n" +
+                records.map(function (r) {
+                    return r + ",HKQuantityTypeIdentifierHeartRate";
+                }).join("\n");
+
+            return new File([csv], "apple_health_hr.csv", { type: "text/csv" });
         }
 
         /**
@@ -1310,10 +1299,15 @@
                 var formData = new FormData();
                 formData.append("file", uploadFile);
 
+                var controller = new AbortController();
+                var timeoutId = setTimeout(function () { controller.abort(); }, 60000);
+
                 var response = await fetch("/analyse", {
                     method: "POST",
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 var data = await response.json();
 
@@ -1344,7 +1338,11 @@
                 resultsSection.style.display = "block";
 
             } catch (err) {
-                errorBox.textContent = err.message || "Connection error \u2014 is the server running?";
+                if (err.name === "AbortError") {
+                    errorBox.textContent = "Request timed out \u2014 the server may be starting up. Please try again in 30 seconds.";
+                } else {
+                    errorBox.textContent = err.message || "Connection error \u2014 is the server running?";
+                }
                 errorBox.style.display = "block";
             } finally {
                 btnText.textContent = "Analyse";
