@@ -1,6 +1,6 @@
 # CLAUDE.md — Capstone Project Persistent Guide
 Last updated: March 2026
-Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 MIMIC PERform AF validation complete including cross-model comparison, threshold recalibration, stress testing, and sensitivity-targeted LOOCV. Research loop closed. Narrative pending.
+Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 MIMIC PERform AF validation complete. Research loop closed. App build complete.
 
 
 ### How to Update
@@ -410,6 +410,10 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 | App data truncation | Client-side JavaScript filters to most recent 90 days before upload | Solves file size problem at source — full multi-year export never transmitted to server |
 | App backend | FastAPI | Native Python, minimal boilerplate, serves joblib directly |
 | App frontend | Plain HTML/CSS/JS served by FastAPI | Consumer-facing product appearance for demo presentation |
+| App threshold | 0.8368 | LOOCV mean threshold — out-of-sample estimate, more defensible than point estimate 0.8424 |
+| App purpose | Demo + potential public product | Not PT clients only — general public target |
+| App result display | Tier + percentage + plain-English explanation + disclaimer | Chart excluded — adds complexity, sparse for infrequent HR readers |
+| App disclaimer style | Hard acknowledgement banner | User must acknowledge before upload — responsible design for general public |
 
 ---
 
@@ -439,6 +443,11 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 | stress_test_results_mimic.csv | outputs/layer2/ | Stress test results | Complete |
 | sensitivity_targeted_loocv_mimic.csv | outputs/layer2/ | 35 rows | Complete |
 | sensitivity_targeted_comparison_mimic.csv | outputs/layer2/ | 2 rows | Complete |
+| app/main.py | app/ | FastAPI backend | Complete |
+| app/pipeline.py | app/ | ML inference pipeline | Complete |
+| app/static/index.html | app/static/ | BeatCheck frontend | Complete |
+| app/models/scaler.joblib | app/models/ | Copy from outputs/models/ | Complete |
+| app/models/selected_model.joblib | app/models/ | Copy from outputs/models/ | Complete |
 
 ---
 
@@ -494,6 +503,10 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 - [x] Threshold recalibration ROC analysis (Youden's J)
 - [x] Stress testing — bootstrap AUROC, bootstrap recalibrated metrics, LOOCV
 - [x] Sensitivity-targeted LOOCV
+- [x] BeatCheck app built and stress-tested
+- [x] XML and ZIP input formats supported
+- [x] Client-side XML streaming implemented (handles large exports)
+- [x] Stress test passed — Intermediate tier, 602 windows, 84 days
 - [ ] ECG report retrieved
 - [ ] Final narrative written
 
@@ -628,10 +641,9 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 
 **Layer 2 — MIMIC PERform AF (Primary):** Complete. 35 subjects, all green tier. Sensitivity 100%, Specificity 12.5%, AUROC 0.8586. Tier 1 PASS, Tier 2 FAIL (specificity), Tier 3 PASS. Modality gap (8 large KS distances) explains threshold miscalibration. AUROC confirms discriminative signal transfers across modalities. Research loop closed.
 
-**App — Cardiac Screening Web App:** Architecture locked. Pending narrative completion.
+**App — BeatCheck:** Complete. FastAPI backend + clinical frontend. Accepts CSV, XML, Export.zip. Client-side streaming for large XML. Stress-tested with real Apple Health export — Intermediate tier, 38.2% windows flagged across 84 days.
 
 **Immediate next steps:**
 1. Retrieve June 2025 ECG report
 2. Write final narrative
-3. Execute app build via Claude Code
-4. Create GitHub repository
+3. Create GitHub repository

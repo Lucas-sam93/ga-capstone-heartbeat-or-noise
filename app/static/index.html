@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatCheck — Cardiac Rhythm Screening</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --color-primary: #0C7A8F;
+            --color-primary-dark: #095A6A;
+            --color-primary-light: #E6F6F9;
+            --color-accent: #059669;
+            --color-bg: #FAFCFD;
+            --color-surface: #FFFFFF;
+            --color-text: #164E63;
+            --color-text-secondary: #4B6A78;
+            --color-text-muted: #7C9BA8;
+            --color-border: #D6E4EA;
+            --color-warning-bg: #FFFBEB;
+            --color-warning-border: #F59E0B;
+            --color-warning-text: #92400E;
+            --color-error-bg: #FEF2F2;
+            --color-error-border: #DC2626;
+            --color-error-text: #991B1B;
+            --color-tier-low-bg: #ECFDF5;
+            --color-tier-low-text: #065F46;
+            --color-tier-low-border: #A7F3D0;
+            --color-tier-mid-bg: #FFFBEB;
+            --color-tier-mid-text: #92400E;
+            --color-tier-mid-border: #FDE68A;
+            --color-tier-high-bg: #FEF2F2;
+            --color-tier-high-text: #991B1B;
+            --color-tier-high-border: #FECACA;
+            --font-heading: "Figtree", sans-serif;
+            --font-body: "Noto Sans", sans-serif;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 3px rgba(12, 122, 143, 0.06);
+            --shadow-md: 0 4px 12px rgba(12, 122, 143, 0.08);
+            --shadow-lg: 0 8px 24px rgba(12, 122, 143, 0.1);
+            --transition: 200ms ease;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.65;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- Skip link (a11y) --- */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--color-primary);
+            color: #fff;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            z-index: 100;
+            transition: top var(--transition);
+        }
+        .skip-link:focus {
+            top: 1rem;
+        }
+
+        /* --- Focus ring (a11y) --- */
+        :focus-visible {
+            outline: 3px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* --- Header --- */
+        .header {
+            padding: 2.5rem 1.5rem 2rem;
+            text-align: center;
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .header h1 {
+            font-family: var(--font-heading);
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--color-primary-dark);
+            letter-spacing: -0.01em;
+        }
+
+        .header p {
+            font-family: var(--font-heading);
+            font-size: 1.0625rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.375rem;
+            font-weight: 400;
+        }
+
+        /* --- Main content --- */
+        .main {
+            flex: 1;
+            max-width: 620px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 3rem;
+        }
+
+        /* --- Disclaimer banner --- */
+        .disclaimer-banner {
+            background: var(--color-warning-bg);
+            border: 1px solid var(--color-warning-border);
+            border-left: 4px solid var(--color-warning-border);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2.5rem;
+            border-radius: var(--radius-md);
+        }
+
+        .disclaimer-banner .disclaimer-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            margin-bottom: 0.875rem;
+        }
+
+        .disclaimer-banner .disclaimer-icon svg {
+            flex-shrink: 0;
+            color: var(--color-warning-border);
+        }
+
+        .disclaimer-banner .disclaimer-icon span {
+            font-family: var(--font-heading);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--color-warning-text);
+        }
+
+        .disclaimer-banner p {
+            font-size: 0.9375rem;
+            color: var(--color-warning-text);
+            margin-bottom: 1.125rem;
+            line-height: 1.7;
+        }
+
+        .disclaimer-banner label {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.625rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-warning-text);
+            cursor: pointer;
+            padding: 0.5rem 0;
+        }
+
+        .disclaimer-banner input[type="checkbox"] {
+            margin-top: 0.15rem;
+            accent-color: var(--color-primary);
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        /* --- Upload section --- */
+        .upload-section {
+            margin-bottom: 2rem;
+        }
+
+        .upload-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.375rem;
+            font-weight: 600;
+            color: var(--color-primary-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-section .subtext {
+            font-size: 0.9375rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+
+        /* --- Custom file drop zone --- */
+        .drop-zone {
+            position: relative;
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            margin-bottom: 1.25rem;
+            transition: border-color var(--transition), background var(--transition);
+            cursor: pointer;
+            background: var(--color-surface);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.has-file {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone-content {
+            pointer-events: none;
+        }
+
+        .drop-zone-icon {
+            color: var(--color-text-muted);
+            margin-bottom: 0.75rem;
+            transition: color var(--transition);
+        }
+
+        .drop-zone:hover .drop-zone-icon,
+        .drop-zone.has-file .drop-zone-icon {
+            color: var(--color-primary);
+        }
+
+        .drop-zone-text {
+            font-size: 0.9375rem;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+
+        .drop-zone-text .browse {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .drop-zone-hint {
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            margin-top: 0.375rem;
+        }
+
+        .file-name {
+            display: none;
+            font-size: 0.875rem;
+            color: var(--color-primary-dark);
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .file-name.visible {
+            display: block;
+        }
+
+        /* --- Analyse button --- */
+        .btn-analyse {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2.5rem;
+            min-height: 48px;
+            min-width: 160px;
+            background: var(--color-primary);
+            color: #FFFFFF;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background var(--transition), box-shadow var(--transition), transform 100ms ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-analyse:hover:not(:disabled) {
+            background: var(--color-primary-dark);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-analyse:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn-analyse:disabled {
+            background: #B0C4CE;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-analyse .spinner {
+            display: none;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-analyse.loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- Error box --- */
+        .error-box {
+            display: none;
+            background: var(--color-error-bg);
+            border: 1px solid var(--color-error-border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-top: 1.25rem;
+            color: var(--color-error-text);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+
+        /* --- Results section --- */
+        .results-section {
+            display: none;
+            margin-top: 0.5rem;
+            animation: fadeUp 400ms ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .results-section { animation: none; }
+            .btn-analyse .spinner { animation-duration: 2s; }
+        }
+
+        .results-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .tier-badge {
+            text-align: center;
+            padding: 1.75rem 1.25rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            border: 1px solid transparent;
+        }
+
+        .tier-badge .tier-label {
+            font-family: var(--font-heading);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .tier-badge .tier-value {
+            font-family: var(--font-heading);
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .tier-low {
+            background: var(--color-tier-low-bg);
+            color: var(--color-tier-low-text);
+            border-color: var(--color-tier-low-border);
+        }
+
+        .tier-intermediate {
+            background: var(--color-tier-mid-bg);
+            color: var(--color-tier-mid-text);
+            border-color: var(--color-tier-mid-border);
+        }
+
+        .tier-high {
+            background: var(--color-tier-high-bg);
+            color: var(--color-tier-high-text);
+            border-color: var(--color-tier-high-border);
+        }
+
+        .explanation {
+            font-size: 0.9375rem;
+            color: var(--color-text);
+            margin-bottom: 1.5rem;
+            line-height: 1.75;
+        }
+
+        .stats-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            padding: 0.875rem 1rem;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-row svg {
+            flex-shrink: 0;
+            color: var(--color-text-muted);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--color-border);
+            margin: 1.25rem 0;
+        }
+
+        .disclaimer-reminder {
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            font-style: italic;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            text-align: center;
+            padding: 1.75rem 1.5rem;
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            border-top: 1px solid var(--color-border);
+            background: var(--color-surface);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 480px) {
+            .header { padding: 2rem 1rem 1.5rem; }
+            .header h1 { font-size: 1.75rem; }
+            .header p { font-size: 0.9375rem; }
+            .main { padding: 1.75rem 1rem 2.5rem; }
+            .results-card { padding: 1.5rem 1.25rem; }
+            .tier-badge .tier-value { font-size: 1.75rem; }
+            .drop-zone { padding: 1.5rem 1rem; }
+            .btn-analyse { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- 1. Header -->
+    <header class="header">
+        <h1>BeatCheck</h1>
+        <p>Cardiac rhythm screening powered by machine learning</p>
+    </header>
+
+    <main class="main" id="main-content">
+
+        <!-- 2. Disclaimer banner -->
+        <div class="disclaimer-banner" role="alert">
+            <div class="disclaimer-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span>Important Notice</span>
+            </div>
+            <p>
+                BeatCheck is a screening tool only. It does not diagnose heart
+                conditions and is not a medical device. Always consult a
+                qualified medical professional if you have concerns about your
+                heart health.
+            </p>
+            <label>
+                <input type="checkbox" id="disclaimer-check" aria-label="Acknowledge disclaimer">
+                <span>I understand this is a screening tool, not a medical diagnosis</span>
+            </label>
+        </div>
+
+        <!-- 3. Upload section -->
+        <div class="upload-section">
+            <h2>Upload your Apple Health export</h2>
+            <p class="subtext">
+                Export your data from the Apple Health app as a CSV or XML file.
+                BeatCheck analyses your heart rate data from the past 90 days.
+            </p>
+            <div class="drop-zone" id="drop-zone">
+                <input type="file" id="file-input" accept=".csv,.xml,.zip" aria-label="Select CSV file">
+                <div class="drop-zone-content">
+                    <div class="drop-zone-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="drop-zone-text">
+                        <span class="browse">Choose a file</span> or drag it here
+                    </div>
+                    <div class="drop-zone-hint">CSV, XML, or ZIP files</div>
+                </div>
+                <div class="file-name" id="file-name"></div>
+            </div>
+            <button class="btn-analyse" id="btn-analyse" disabled aria-label="Analyse heart rate data">
+                <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <span id="btn-text">Analyse</span>
+            </button>
+            <div class="error-box" id="error-box"></div>
+        </div>
+
+        <!-- 4. Results section -->
+        <div class="results-section" id="results-section">
+            <div class="results-card">
+                <div class="tier-badge" id="tier-badge">
+                    <div class="tier-label">Risk Tier</div>
+                    <div class="tier-value" id="tier-value"></div>
+                </div>
+                <p class="explanation" id="explanation"></p>
+                <div class="stats-row" id="stats-row">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    <span id="stats-text"></span>
+                </div>
+                <div class="divider"></div>
+                <p class="disclaimer-reminder">
+                    This result is not a diagnosis. BeatCheck is a research
+                    prototype &mdash; not a certified medical device.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 5. Footer -->
+    <footer class="footer">
+        BeatCheck &mdash; Built by Lucas Sam | Capstone Project 2026
+    </footer>
+
+    <script>
+        var disclaimerCheck = document.getElementById("disclaimer-check");
+        var fileInput = document.getElementById("file-input");
+        var btnAnalyse = document.getElementById("btn-analyse");
+        var btnText = document.getElementById("btn-text");
+        var errorBox = document.getElementById("error-box");
+        var resultsSection = document.getElementById("results-section");
+        var tierBadge = document.getElementById("tier-badge");
+        var tierValue = document.getElementById("tier-value");
+        var explanation = document.getElementById("explanation");
+        var statsText = document.getElementById("stats-text");
+        var dropZone = document.getElementById("drop-zone");
+        var fileName = document.getElementById("file-name");
+
+        function updateButtonState() {
+            btnAnalyse.disabled = !(disclaimerCheck.checked && fileInput.files.length > 0);
+        }
+
+        disclaimerCheck.addEventListener("change", updateButtonState);
+
+        fileInput.addEventListener("change", function () {
+            if (fileInput.files.length > 0) {
+                dropZone.classList.add("has-file");
+                fileName.textContent = fileInput.files[0].name;
+                fileName.classList.add("visible");
+            } else {
+                dropZone.classList.remove("has-file");
+                fileName.classList.remove("visible");
+            }
+            updateButtonState();
+        });
+
+        var explanations = {
+            Low: function (days) {
+                return "Your heart rate patterns over the past " + days +
+                    " days show no significant signs of rhythm irregularity. " +
+                    "Continue monitoring regularly.";
+            },
+            Intermediate: function (days) {
+                return "Some windows in your data show rhythm patterns that " +
+                    "differ from normal. This does not confirm a condition " +
+                    "\u2014 consider discussing with your doctor.";
+            },
+            High: function (days) {
+                return "A notable proportion of your heart rate windows show " +
+                    "rhythm patterns associated with irregularity. We recommend " +
+                    "discussing these results with a medical professional.";
+            }
+        };
+
+        var tierClasses = {
+            Low: "tier-low",
+            Intermediate: "tier-intermediate",
+            High: "tier-high"
+        };
+
+        /**
+         * For large XML files (Apple Health export.xml can be 1-2 GB),
+         * extract heart rate records client-side using streaming text
+         * reader + regex, then build a small CSV to upload.
+         */
+        async function extractHrFromXml(file) {
+            var records = [];
+            var re = /<Record[^>]*HKQuantityTypeIdentifierHeartRate[^>]*>/g;
+            var reStart = /startDate="([^"]+)"/;
+            var reValue = /\bvalue="([^"]+)"/;
+
+            var reader = file.stream().getReader();
+            var decoder = new TextDecoder("utf-8");
+            var leftover = "";
+            var totalRead = 0;
+            var fileSize = file.size;
+
+            while (true) {
+                var result = await reader.read();
+                if (result.done) break;
+
+                totalRead += result.value.length;
+                var pct = Math.round((totalRead / fileSize) * 100);
+                btnText.textContent = "Reading XML\u2026 " + pct + "%";
+
+                var chunk = leftover + decoder.decode(result.value, { stream: true });
+
+                var match;
+                var lastIndex = 0;
+                while ((match = re.exec(chunk)) !== null) {
+                    var tag = match[0];
+                    var sm = reStart.exec(tag);
+                    var vm = reValue.exec(tag);
+                    if (sm && vm) {
+                        records.push(sm[1] + "," + vm[1]);
+                    }
+                    lastIndex = re.lastIndex;
+                }
+
+                // Keep unprocessed tail (may contain partial tag)
+                var tailStart = chunk.lastIndexOf("<Record", lastIndex);
+                if (tailStart > 0 && tailStart > lastIndex) {
+                    leftover = chunk.slice(tailStart);
+                } else {
+                    leftover = chunk.slice(Math.max(0, chunk.length - 500));
+                }
+                re.lastIndex = 0;
+            }
+
+            if (records.length === 0) {
+                throw new Error("No heart rate records found in the XML file.");
+            }
+
+            var csv = "startDate,value,type\n" +
+                records.map(function (r) {
+                    return r + ",HKQuantityTypeIdentifierHeartRate";
+                }).join("\n");
+
+            return new File([csv], "apple_health_hr.csv", { type: "text/csv" });
+        }
+
+        btnAnalyse.addEventListener("click", async function () {
+            errorBox.style.display = "none";
+            resultsSection.style.display = "none";
+
+            var file = fileInput.files[0];
+            if (!file) return;
+
+            btnText.textContent = "Analysing\u2026";
+            btnAnalyse.classList.add("loading");
+            btnAnalyse.disabled = true;
+
+            try {
+                var uploadFile = file;
+                var name = file.name.toLowerCase();
+
+                // Client-side XML extraction for large XML files
+                if (name.endsWith(".xml") && file.size > 50 * 1024 * 1024) {
+                    uploadFile = await extractHrFromXml(file);
+                    btnText.textContent = "Analysing\u2026";
+                }
+
+                var formData = new FormData();
+                formData.append("file", uploadFile);
+
+                var response = await fetch("/analyse", {
+                    method: "POST",
+                    body: formData
+                });
+
+                var data = await response.json();
+
+                if (!response.ok) {
+                    errorBox.textContent = data.detail || "An unexpected error occurred.";
+                    errorBox.style.display = "block";
+                    return;
+                }
+
+                tierBadge.className = "tier-badge " + tierClasses[data.risk_tier];
+                tierValue.textContent = data.risk_tier;
+                explanation.textContent = explanations[data.risk_tier](data.days_analysed);
+                statsText.textContent =
+                    data.flagged_windows + " of " + data.total_windows +
+                    " windows flagged (" + data.pct_flagged + "%) across " +
+                    data.days_analysed + " days";
+                resultsSection.style.display = "block";
+
+            } catch (err) {
+                errorBox.textContent = err.message || "Connection error \u2014 is the server running?";
+                errorBox.style.display = "block";
+            } finally {
+                btnText.textContent = "Analyse";
+                btnAnalyse.classList.remove("loading");
+                updateButtonState();
+            }
+        });
+    </script>
+
+</body>
+</html>
