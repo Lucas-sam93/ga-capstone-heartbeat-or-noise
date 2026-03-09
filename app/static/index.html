@@ -785,28 +785,13 @@
             margin-bottom: 1.5rem;
         }
 
-        .how-to-guide summary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--color-primary);
-            cursor: pointer;
-            list-style: none;
-            padding: 0.25rem 0;
-            user-select: none;
-        }
-
-        .how-to-guide summary::-webkit-details-marker { display: none; }
-
-        .how-to-guide summary svg {
-            flex-shrink: 0;
-            transition: transform var(--transition-fast);
-        }
-
-        .how-to-guide[open] summary svg {
-            transform: rotate(90deg);
+        .how-to-guide-heading {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.75rem;
         }
 
         .how-to-steps {
@@ -856,6 +841,62 @@
         .how-to-step-text strong {
             color: var(--color-text);
             font-weight: 600;
+        }
+
+        /* ---- Proceed button (page 1 → page 2) ---- */
+        .proceed-row {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .btn-proceed {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0 2rem;
+            height: 52px;
+            min-width: 220px;
+            background: var(--color-primary);
+            color: #FFFFFF;
+            font-family: var(--font-body);
+            font-size: 1.0625rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            border: none;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: background var(--transition-fast), box-shadow var(--transition), transform 120ms ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-proceed:hover:not(:disabled) {
+            background: var(--color-primary-hover);
+            box-shadow: var(--shadow-md), 0 0 0 4px var(--color-primary-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-proceed:active:not(:disabled) {
+            background: var(--color-primary-active);
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-proceed:disabled {
+            background: var(--color-border);
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ---- Upload page (hidden until disclaimer accepted) ---- */
+        #page-upload {
+            display: none;
+        }
+
+        #page-upload.visible {
+            display: block;
+            animation: fadeUp 500ms cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* ---- Save result button ---- */
@@ -1023,7 +1064,9 @@
 
     <main class="main" id="main-content">
 
-        <!-- 2. Disclaimer banner -->
+        <!-- Page 1: Disclaimer -->
+        <div id="page-disclaimer">
+
         <div class="disclaimer-banner" role="alert">
             <div class="disclaimer-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1045,6 +1088,20 @@
             </label>
         </div>
 
+        <div class="proceed-row">
+            <button class="btn-proceed" id="btn-proceed" disabled aria-label="Proceed to file upload">
+                Continue to upload
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+            </button>
+        </div>
+
+        </div><!-- end #page-disclaimer -->
+
+        <!-- Page 2: Upload + Results -->
+        <div id="page-upload">
+
         <!-- 3. Upload section -->
         <div class="upload-section">
             <h2>Upload your data</h2>
@@ -1052,28 +1109,23 @@
                 Export your data from the Apple Health app as a CSV or XML file.
                 BeatCheck analyses your heart rate data from the past 90 days.
             </p>
-            <details class="how-to-guide">
-                <summary>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                    How do I export from Apple Health?
-                </summary>
+            <div class="how-to-guide">
+                <p class="how-to-guide-heading">How to export from Apple Health</p>
                 <div class="how-to-steps">
                     <div class="how-to-step">
                         <div class="how-to-step-num" aria-hidden="true">1</div>
-                        <p class="how-to-step-text">Open the <strong>Apple Health</strong> app, tap your <strong>profile photo</strong> in the top right corner.</p>
+                        <p class="how-to-step-text">Open the <strong>Health</strong> app on your iPhone. On the <strong>Summary</strong> tab, tap your <strong>profile photo or initials</strong> in the top-right corner to open your profile page.</p>
                     </div>
                     <div class="how-to-step">
                         <div class="how-to-step-num" aria-hidden="true">2</div>
-                        <p class="how-to-step-text">Scroll down and tap <strong>Export All Health Data</strong>, then tap <strong>Export</strong> to confirm.</p>
+                        <p class="how-to-step-text">Scroll to the <strong>very bottom</strong> of the profile page and tap <strong>Export All Health Data</strong>. A confirmation prompt will appear — tap <strong>Export</strong>. Apple will prepare the file; this can take <strong>1–5 minutes</strong> if you have several years of data.</p>
                     </div>
                     <div class="how-to-step">
                         <div class="how-to-step-num" aria-hidden="true">3</div>
-                        <p class="how-to-step-text">Save the file to <strong>Files</strong> or share it. Upload the <strong>Export.zip</strong> file directly here — no need to unzip.</p>
+                        <p class="how-to-step-text">An iOS <strong>share sheet</strong> will appear. Tap <strong>Save to Files</strong>, choose a folder (e.g. <em>iCloud Drive</em> or <em>On My iPhone</em>), then tap <strong>Save</strong>. The file is named <strong>export.zip</strong> — upload it here exactly as-is. <em>Do not unzip it.</em></p>
                     </div>
                 </div>
-            </details>
+            </div>
 
             <div class="drop-zone" id="drop-zone">
                 <input type="file" id="file-input" accept=".csv,.xml,.zip" aria-label="Select health data file">
@@ -1156,6 +1208,8 @@
             </div>
         </div>
 
+        </div><!-- end #page-upload -->
+
     </main>
 
     <!-- 5. Footer -->
@@ -1171,6 +1225,9 @@
 
     <script>
         var disclaimerCheck = document.getElementById("disclaimer-check");
+        var btnProceed = document.getElementById("btn-proceed");
+        var pageDisclaimer = document.getElementById("page-disclaimer");
+        var pageUpload = document.getElementById("page-upload");
         var fileInput = document.getElementById("file-input");
         var btnAnalyse = document.getElementById("btn-analyse");
         var btnText = document.getElementById("btn-text");
@@ -1188,11 +1245,22 @@
         var progressRingFill = document.getElementById("progress-ring-fill");
         var progressPct = document.getElementById("progress-pct");
 
-        function updateButtonState() {
-            btnAnalyse.disabled = !(disclaimerCheck.checked && fileInput.files.length > 0);
+        // Page 1: checkbox gates proceed button
+        function updateProceedState() {
+            btnProceed.disabled = !disclaimerCheck.checked;
         }
 
-        disclaimerCheck.addEventListener("change", updateButtonState);
+        disclaimerCheck.addEventListener("change", updateProceedState);
+
+        btnProceed.addEventListener("click", function () {
+            pageDisclaimer.style.display = "none";
+            pageUpload.classList.add("visible");
+        });
+
+        // Page 2: file selection gates analyse button
+        function updateButtonState() {
+            btnAnalyse.disabled = fileInput.files.length === 0;
+        }
 
         fileInput.addEventListener("change", function () {
             if (fileInput.files.length > 0) {
