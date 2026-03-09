@@ -1,4 +1,0 @@
-tier,criterion,result,evidence
-1,Pipeline execution and gap quantification interpretable,PASS,"1,997 windows generated. KS statistics computed for all 8 features. 5 large (KS>0.3), 3 moderate (0.1-0.3), 0 small."
-2,At least one anchor period significantly elevated above baseline (Mann-Whitney p<0.05),FAIL,"pre_anchor p=0.957, post_anchor p=0.839, follow_up p=0.737. No period elevated above baseline."
-3,Screening feasibility demonstrated (conditional on Tier 2 pass),FAIL,Tier 2 not passed. Tier 3 cannot be evaluated.

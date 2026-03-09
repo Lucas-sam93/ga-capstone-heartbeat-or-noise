@@ -237,33 +237,64 @@ Sensitivity-targeted LOOCV achieves 78.9% sensitivity (1.1pp below pre-registere
 
 ---
 
+## BeatCheck — Cardiac Screening App (Complete)
+
+BeatCheck is a consumer-facing web app that applies the trained SVM model to Apple Health heart rate exports. It is built as a proof-of-concept demonstration of the research pipeline in a deployable format.
+
+**Stack:** FastAPI backend, plain HTML/CSS/JS frontend, deployed on Render.
+
+**Input formats accepted:** Apple Health CSV export, XML export (`export.xml`), or full ZIP archive (`export.zip`). Client-side JavaScript handles large XML files via streaming to avoid browser memory limits — the full multi-year export is never transmitted to the server.
+
+**Processing:** Uploaded data is filtered client-side to the most recent 90 days, then windowed into 30-minute overlapping windows (15-minute step). Each window is scored by the SVM at a domain-adapted threshold of 0.8368 (LOOCV mean threshold — more defensible than the point estimate of 0.8424).
+
+**Risk output:** Percentage of windows flagged as abnormal, mapped to three tiers:
+
+| Tier | Windows Flagged | Interpretation |
+|---|---|---|
+| Low | < 10% | No pattern of concern detected |
+| Intermediate | 10–40% | Elevated pattern — consider follow-up |
+| High | > 40% | Consistent pattern — clinical review recommended |
+
+**Stress test result:** Real Apple Health export (4.8 years) processed successfully — Intermediate tier, 38.2% of windows flagged across 84 days analysed.
+
+**Threshold note:** App threshold (0.8368) differs from Layer 1 threshold (0.34) by design. The 0.34 threshold was calibrated on Physionet ECG. The 0.8368 threshold is derived from LOOCV on MIMIC PERform AF PPG data and is domain-adapted for consumer wearable signals. This is not threshold shopping — it is the pre-registered recalibration strategy, applied using an out-of-sample estimate.
+
+**Disclaimer:** A hard acknowledgement banner is displayed before upload. App output is a screening flag, not a diagnosis.
+
+---
+
 ## Project Structure
+
+**Note:** `data/`, `data/processed/`, and `outputs/models/` are gitignored. Large data files, personal health data, and trained model files are not committed. Clone the repo and rerun the notebooks to regenerate processed outputs and model files.
 
 ```
 ga-capstone-heartbeat-or-noise/
 │   README.md
-│   requirements.txt
+│   requirements.txt          # Points to app/requirements.txt
 │   CLAUDE.md
+│   render.yaml               # Render deployment config
+│   .python-version           # Python version pin
 │
-├───data/
+├───app/                      # BeatCheck cardiac screening app
+│   ├───__init__.py
+│   ├───main.py               # FastAPI backend
+│   ├───pipeline.py           # ML inference pipeline
+│   ├───requirements.txt      # App dependencies
+│   ├───models/
+│   │   ├───scaler.joblib     # Copy of outputs/models/scaler.joblib
+│   │   └───selected_model.joblib
+│   └───static/
+│       └───index.html        # BeatCheck frontend
+│
+├───data/                     # gitignored — not committed
 │   ├───physionet/            # 8,528 ECG recordings (.mat + .hea) + REFERENCE-v3.csv
-│   ├───apple_watch/          # Raw CSV exports from Apple Health XML
-│   │   ├───export.xml        # Source XML (1.58 GB, not committed)
-│   │   ├───heart_rate_raw.csv
-│   │   ├───hrv_raw.csv
-│   │   ├───resting_hr_raw.csv
-│   │   ├───walking_hr_raw.csv
-│   │   ├───respiratory_rate_raw.csv
-│   │   ├───sleep_raw.csv
-│   │   ├───workouts_raw.csv
-│   │   └───[additional metrics]
-│   ├───mimic_perform_af/     # MIMIC PERform AF CSV files (Zenodo — downloaded)
-│   └───processed/
+│   ├───apple_watch/          # Raw CSV exports from Apple Health XML (personal — never committed)
+│   ├───mimic_perform_af/
+│   │   ├───mimic_perform_af_csv/       # 19 AF subjects — CSV + _fix.txt per subject
+│   │   └───mimic_perform_non_af_csv/   # 16 NSR subjects — CSV + _fix.txt per subject
+│   └───processed/            # gitignored — regenerate by running notebooks
 │       ├───heart_rate_clean.csv           # 478,077 records
 │       ├───hrv_clean.csv                  # 5,456 records
-│       ├───resting_hr_clean.csv
-│       ├───walking_hr_clean.csv
-│       ├───respiratory_rate_clean.csv
 │       ├───physionet_features.csv         # 8,187 rows, 8 features
 │       └───apple_watch_features.csv       # 1,997 windows, 12 columns
 │
@@ -271,38 +302,39 @@ ga-capstone-heartbeat-or-noise/
 │   ├───01_data_exploration.ipynb          # Data acquisition, XML parsing, validation
 │   ├───02_feature_engineering.ipynb       # Cleaning, artifact removal, feature extraction
 │   ├───03_modelling.ipynb                 # Model training, CV, selection, evaluation
-│   ├───04_layer2_analysis.ipynb                  # Apple Watch case study (complete)
-│   └───05_mimic_perform_af_validation.ipynb      # MIMIC PERform AF validation (complete)
+│   ├───04_layer2_analysis.ipynb           # Apple Watch case study (complete)
+│   └───05_mimic_perform_af_validation.ipynb  # MIMIC PERform AF validation (complete)
 │
 ├───src/
-│   ├───preprocess.py              # Apple Watch data cleaning pipeline
-│   ├───features.py                # Physionet ECG feature extraction (8 HRV features)
-│   ├───evaluate.py                # Model evaluation functions
-│   ├───apple_watch_features.py            # Apple Watch windowed feature extraction
-│   └───mimic_perform_af_features.py      # MIMIC PERform AF PPG feature extraction (complete)
+│   ├───preprocess.py                  # Apple Watch data cleaning pipeline
+│   ├───features.py                    # Physionet ECG feature extraction (8 HRV features)
+│   ├───evaluate.py                    # Model evaluation functions
+│   ├───apple_watch_features.py        # Apple Watch windowed feature extraction
+│   └───mimic_perform_af_features.py   # MIMIC PERform AF PPG feature extraction
 │
 └───outputs/
     ├───figures/
+    │   ├───figures_log.csv                     # Running manifest of all figures produced
     │   ├───sample_ecg.png
     │   └───aw_vs_physionet_distributions.png   # 8-subplot KS comparison
-    ├───models/
+    ├───models/                                 # gitignored — not committed
     │   ├───selected_model.joblib               # SVM (threshold 0.34)
     │   ├───scaler.joblib                       # StandardScaler (fitted on training only)
-    │   ├───evaluation_report.json              # Full test set metrics
-    │   └───rf_feature_importance.csv           # Random Forest supplementary output
+    │   ├───evaluation_report.json
+    │   └───rf_feature_importance.csv
     └───layer2/
-        ├───gap_quantification.csv              # 8-row KS results (Apple Watch)
-        ├───probability_scores.csv              # 1,997 Apple Watch windows scored
-        ├───mann_whitney_results.csv            # 3-row period comparison
-        ├───tier_assessment.csv                 # Apple Watch tier results
-        ├───mimic_perform_af_features.csv      # 35 subjects, 8 features
-        ├───gap_quantification_mimic.csv       # 8-row KS results (MIMIC)
-        ├───probability_scores_mimic.csv       # 35 subjects scored
-        ├───tier_assessment_mimic.csv          # MIMIC tier results
-        ├───cross_model_comparison_mimic.csv   # 4 models compared
-        ├───threshold_recalibration_mimic.csv  # Fixed vs recalibrated threshold
-        ├───stress_test_results_mimic.csv      # Bootstrap + LOOCV results
-        └───sensitivity_targeted_loocv_mimic.csv  # 35-fold per-subject results
+        ├───gap_quantification.csv                  # 8-row KS results (Apple Watch)
+        ├───probability_scores.csv                  # 1,997 Apple Watch windows scored
+        ├───mann_whitney_results.csv                # 3-row period comparison
+        ├───tier_assessment.csv                     # Apple Watch tier results
+        ├───mimic_perform_af_features.csv           # 35 subjects, 8 features
+        ├───gap_quantification_mimic.csv            # 8-row KS results (MIMIC)
+        ├───probability_scores_mimic.csv            # 35 subjects scored
+        ├───tier_assessment_mimic.csv               # MIMIC tier results
+        ├───cross_model_comparison_mimic.csv        # 4 models compared
+        ├───threshold_recalibration_mimic.csv       # Fixed vs recalibrated threshold
+        ├───stress_test_results_mimic.csv           # Bootstrap + LOOCV results
+        └───sensitivity_targeted_loocv_mimic.csv    # 35-fold per-subject results
 ```
 
 ---
@@ -314,7 +346,7 @@ ga-capstone-heartbeat-or-noise/
 | `01_data_exploration` | Validate Physionet dataset, parse Apple Health XML, extract raw CSVs | Complete | 9 raw CSV files, `sample_ecg.png` |
 | `02_feature_engineering` | Clean Apple Watch data, remove artifacts, extract Physionet features | Complete | 5 cleaned CSVs, `physionet_features.csv` |
 | `03_modelling` | Train 4 classifiers, cross-validate, select model, evaluate on held-out test | Complete | `selected_model.joblib`, `scaler.joblib`, `evaluation_report.json` |
-| `04_layer2_analysis` | Apple Watch windowed features, KS gap analysis, probability scoring, Mann-Whitney tests | Complete | `apple_watch_features.csv`, `gap_quantification.csv`, `probability_scores.csv`, `mann_whitney_results.csv` |
+| `04_layer2_analysis` | Apple Watch windowed features, KS gap analysis, probability scoring, Mann-Whitney tests, tier assessment | Complete | `apple_watch_features.csv`, `gap_quantification.csv`, `probability_scores.csv`, `mann_whitney_results.csv`, `tier_assessment.csv` |
 | `05_mimic_perform_af_validation` | MIMIC PERform AF PPG feature extraction, gap quantification, model application, cross-model comparison, threshold recalibration, stress testing, sensitivity-targeted LOOCV | Complete | `mimic_perform_af_features.csv`, `cross_model_comparison_mimic.csv`, `threshold_recalibration_mimic.csv`, `stress_test_results_mimic.csv` |
 
 ### Source Modules
@@ -326,6 +358,7 @@ ga-capstone-heartbeat-or-noise/
 | `src/evaluate.py` | `03_modelling` | Confusion matrix, sensitivity, specificity, AUROC, F1, AF-specific sensitivity, threshold sweep |
 | `src/apple_watch_features.py` | `04_layer2_analysis` | Windowed feature extraction from Apple Watch HR and HRV records, anchor period labelling |
 | `src/mimic_perform_af_features.py` | `05_mimic_perform_af_validation` | PPG peak detection (NeuroKit2), RR interval extraction, 8-feature computation per subject |
+| `app/pipeline.py` | `app/main.py` | Loads scaler and SVM, processes uploaded heart rate data, returns windowed scores and risk tier |
 
 ---
 
@@ -339,9 +372,12 @@ git clone https://github.com/Lucas-sam93/ga-capstone-heartbeat-or-noise.git
 conda create -n cvd_project python=3.13
 conda activate cvd_project
 
-# Install dependencies
+# Install research dependencies
 conda install numpy pandas scipy scikit-learn matplotlib seaborn jupyter ipykernel -y
-pip install wfdb xgboost joblib
+pip install wfdb xgboost joblib neurokit2
+
+# Install app dependencies (FastAPI + serving)
+pip install -r app/requirements.txt
 ```
 
 ---
@@ -369,6 +405,14 @@ pip install wfdb xgboost joblib
 | Layer 2 primary validation | MIMIC PERform AF (Zenodo) | Real PPG, pre-labeled binary ground truth, no access barrier, deadline-compatible |
 | Window size (MIMIC PERform AF) | Single 20-minute window per subject | Full recording duration — preserves Layer 1 pipeline contract, longer window strengthens HRV reliability |
 | Label mapping (MIMIC PERform AF) | AF files = 1, Non-AF files = 0 | Pre-assigned at file level, maps directly to binary framing |
+| PPG null handling (MIMIC PERform AF) | Linear interpolation pre-peak-detection | 8 of 35 files affected, worst case 1.15% — standard PPG cleaning practice |
+| App input format | Apple Health CSV/XML/ZIP export | Most common consumer wearable export format, proven pipeline from Apple Watch analysis |
+| App data truncation | Client-side JS filters to most recent 90 days | Solves file size problem at source — full multi-year export never transmitted to server |
+| App window strategy | Percentage of windows above threshold | Mirrors clinical Holter monitoring, neutralises single-window false positive problem |
+| App risk tiers | 3-band: Low <10%, Intermediate 10–40%, High >40% | Clinically grounded, consistent with ACC/AHA screening frameworks |
+| App backend | FastAPI | Native Python, minimal boilerplate, serves joblib directly |
+| App threshold | 0.8368 (LOOCV mean) | Out-of-sample estimate — more defensible than point estimate 0.8424 |
+| App disclaimer style | Hard acknowledgement banner | User must acknowledge before upload — responsible design for general public |
 
 ---
 
@@ -379,14 +423,13 @@ pip install wfdb xgboost joblib
 | Layer 1 — Clinical benchmark | **Complete** | SVM: Sensitivity 84.4%, Specificity 87.3%, AUROC 0.9080 |
 | Layer 2 — Apple Watch (N=1) | **Complete (null result)** | No significant elevation around anchor period; large signal modality gap across 5 of 8 features |
 | Layer 2 — MIMIC PERform AF (primary) | **Complete** | AUROC 0.8586; sensitivity-targeted LOOCV: 78.9% sensitivity, 81.2% specificity after threshold recalibration |
+| BeatCheck App | **Complete** | FastAPI + HTML/CSS/JS, deployed on Render. Accepts CSV/XML/ZIP. Stress-tested — Intermediate tier, 38.2% windows flagged |
 
 **Key conclusion:** Modality gap is the central obstacle to direct generalisation from ECG to PPG. AUROC confirms discriminative signal transfers across modalities. Threshold recalibration recovers specificity from 12.5% to 81.2%+ in LOOCV, demonstrating the failure is calibration-based rather than a discrimination failure.
 
-**Immediate next steps:**
+**Remaining:**
 1. Retrieve June 2025 ECG report
-2. Write final narrative
-3. Execute app build
-4. Create GitHub repository
+2. Write final narrative and conclusions
 
 ---
 
