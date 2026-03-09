@@ -14,16 +14,20 @@ Output: returns DataFrames only — notebook handles saving
 """
 
 import os
+
 import numpy as np
 import pandas as pd
 from scipy.stats import skew, kurtosis
 
+from .constants import FEATURE_COLS
 
-# ── Constants ─────────────────────────────────────────────────
+# Apple Watch does not expose raw beat-by-beat intervals.
+# RMSSD is approximated as SDNN x 0.85 based on published
+# correlation between RMSSD and SDNN in healthy adults.
 RMSSD_APPROXIMATION_FACTOR = 0.85
 
 
-def extract_hrv_features(hrv_path):
+def extract_hrv_features(hrv_path: str) -> pd.DataFrame:
     """
     Extract SDNN and approximated RMSSD from Apple Watch HRV records.
 
@@ -58,8 +62,9 @@ def extract_hrv_features(hrv_path):
     return result
 
 
-def extract_hr_features(hr_path, window_size_minutes=30,
-                        step_size_minutes=15, min_readings=10):
+def extract_hr_features(hr_path: str, window_size_minutes: int = 30,
+                        step_size_minutes: int = 15,
+                        min_readings: int = 10) -> pd.DataFrame:
     """
     Extract HR-derived features using sliding time-based windows.
 
@@ -142,7 +147,8 @@ def extract_hr_features(hr_path, window_size_minutes=30,
             )
 
             # Determine anchor_period — majority vote within window
-            anchor = chunk['anchor_period'].mode().iloc[0]
+            mode_vals = chunk['anchor_period'].mode()
+            anchor = mode_vals.iloc[0] if len(mode_vals) > 0 else 'baseline'
 
             windows.append({
                 'window_start':  window_start,
@@ -164,10 +170,11 @@ def extract_hr_features(hr_path, window_size_minutes=30,
     return result
 
 
-def build_apple_watch_feature_matrix(hr_path, hrv_path,
-                                     window_size_minutes=30,
-                                     step_size_minutes=15,
-                                     min_readings=10):
+def build_apple_watch_feature_matrix(
+        hr_path: str, hrv_path: str,
+        window_size_minutes: int = 30,
+        step_size_minutes: int = 15,
+        min_readings: int = 10) -> pd.DataFrame:
     """
     Build the complete 8-feature Apple Watch matrix by merging HR
     windows with HRV records.
@@ -290,8 +297,7 @@ def build_apple_watch_feature_matrix(hr_path, hrv_path,
     result = matched_windows[feature_cols].reset_index(drop=True)
 
     # Round feature columns
-    for col in ['rmssd', 'sdnn', 'mean_rr', 'pnn50',
-                'hr_mean', 'hr_std', 'rr_skewness', 'rr_kurtosis']:
+    for col in FEATURE_COLS:
         result[col] = result[col].round(4)
 
     print(f"Apple Watch feature matrix built:")

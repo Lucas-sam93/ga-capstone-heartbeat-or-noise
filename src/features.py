@@ -1,10 +1,3 @@
-import os
-import numpy as np
-import pandas as pd
-import wfdb
-from wfdb import processing
-from scipy import stats
-
 """
 features.py
 ===========
@@ -22,22 +15,18 @@ Locked feature set (frequency domain excluded — Feb 2026):
 Called from: 02_feature_engineering.ipynb
 """
 
-# ── Constants ────────────────────────────────────────────────────
+import os
 
-# Minimum number of RR intervals required for reliable
-# feature computation. Recordings with fewer intervals
-# are flagged and excluded rather than producing
-# unreliable feature values.
-MIN_RR_COUNT = 10
+import numpy as np
+import pandas as pd
+import wfdb
+from wfdb import processing
 
-# Physiological plausibility bounds for RR intervals
-# in milliseconds. Values outside these bounds indicate
-# R-peak detection errors, not genuine cardiac events.
-RR_MIN_MS = 300    # 200 bpm upper limit
-RR_MAX_MS = 2000   # 30 bpm lower limit
+from .constants import MIN_RR_COUNT, SEPARATOR
+from .utils import filter_rr_intervals, compute_rr_features
 
 
-def extract_features_single(record_path):
+def extract_features_single(record_path: str) -> dict | None:
     """
     Extract the eight locked HRV features from one ECG recording.
 
@@ -73,110 +62,36 @@ def extract_features_single(record_path):
     """
     try:
         # ── Step 1: Read the raw ECG waveform ───────────────────
-        # wfdb reads the .mat signal file and .hea header file.
-        # The header contains sampling frequency and lead info.
         record = wfdb.rdrecord(record_path)
         signal = record.p_signal[:, 0]  # First lead only
         fs = record.fs                   # Sampling frequency (300 Hz)
 
         # ── Step 2: Detect R-peaks ───────────────────────────────
-        # XQRS is wfdb's built-in R-peak detector.
-        # It finds the sharp spikes in the ECG waveform that
-        # correspond to each ventricular contraction.
-        # Output is an array of sample indices where R-peaks occur.
         xqrs = processing.XQRS(sig=signal, fs=fs)
         xqrs.detect(verbose=False)
         r_peaks = xqrs.qrs_inds
 
         # ── Step 3: Convert R-peak locations to RR intervals ─────
-        # Subtract consecutive R-peak sample indices to get
-        # the number of samples between beats, then convert
-        # to milliseconds using the sampling frequency.
-        # Formula: (samples between peaks / samples per second)
-        #          * 1000 = milliseconds
         rr_samples = np.diff(r_peaks)
         rr_ms = (rr_samples / fs) * 1000.0
 
         # ── Step 4: Quality filtering ────────────────────────────
-        # Remove physiologically implausible RR intervals.
-        # Values outside 300-2000ms indicate detection errors.
-        rr_ms = rr_ms[
-            (rr_ms >= RR_MIN_MS) &
-            (rr_ms <= RR_MAX_MS)
-        ]
+        rr_ms = filter_rr_intervals(rr_ms)
 
-        # Require minimum number of valid intervals.
-        # Fewer than MIN_RR_COUNT intervals cannot produce
-        # reliable statistical features.
         if len(rr_ms) < MIN_RR_COUNT:
             return None
 
         # ── Step 5: Compute the eight locked features ─────────────
-
-        # RMSSD
-        # Root mean square of successive RR differences.
-        # Measures beat-to-beat variability — how much the
-        # interval changes from one beat to the next.
-        successive_diffs = np.diff(rr_ms)
-        rmssd = np.sqrt(np.mean(successive_diffs ** 2))
-
-        # SDNN
-        # Standard deviation of all RR intervals.
-        # Captures total variability across the full window.
-        sdnn = np.std(rr_ms, ddof=1)
-
-        # Mean RR
-        # Average inter-beat interval in milliseconds.
-        mean_rr = np.mean(rr_ms)
-
-        # pNN50
-        # Proportion of consecutive pairs differing by >50ms.
-        # Higher values indicate stronger parasympathetic tone.
-        nn50 = np.sum(np.abs(successive_diffs) > 50)
-        pnn50 = nn50 / len(successive_diffs) if len(
-            successive_diffs) > 0 else 0.0
-
-        # HR Mean
-        # Average heart rate derived from mean RR interval.
-        # Formula: 60,000ms per minute / mean RR in ms
-        hr_mean = 60000.0 / mean_rr
-
-        # HR Standard Deviation
-        # Variability of instantaneous heart rate values.
-        # Each RR interval converted to its equivalent HR.
-        hr_series = 60000.0 / rr_ms
-        hr_std = np.std(hr_series, ddof=1)
-
-        # RR Skewness
-        # Asymmetry of the RR interval distribution.
-        # Normal sinus rhythm produces near-zero skewness.
-        # Arrhythmias often produce asymmetric distributions.
-        rr_skewness = stats.skew(rr_ms)
-
-        # RR Kurtosis
-        # Tail weight of the RR interval distribution.
-        # Captures how concentrated or spread the intervals are.
-        rr_kurtosis = stats.kurtosis(rr_ms)
-
-        return {
-            'rmssd':       round(rmssd, 4),
-            'sdnn':        round(sdnn, 4),
-            'mean_rr':     round(mean_rr, 4),
-            'pnn50':       round(pnn50, 4),
-            'hr_mean':     round(hr_mean, 4),
-            'hr_std':      round(hr_std, 4),
-            'rr_skewness': round(rr_skewness, 4),
-            'rr_kurtosis': round(rr_kurtosis, 4),
-            'valid':       True
-        }
+        features = compute_rr_features(rr_ms)
+        features = {k: round(v, 4) for k, v in features.items()}
+        features['valid'] = True
+        return features
 
     except Exception:
-        # Any read or processing failure returns None.
-        # The pipeline logs these as failed extractions.
         return None
 
 
-def build_feature_matrix(physionet_dir, labels_path):
+def build_feature_matrix(physionet_dir: str, labels_path: str) -> pd.DataFrame:
     """
     Extract features from all Physionet recordings.
 
@@ -238,7 +153,7 @@ def build_feature_matrix(physionet_dir, labels_path):
 
     total = len(labels_df)
     print(f"Starting feature extraction — {total} recordings")
-    print("="*55)
+    print(SEPARATOR)
 
     for i, row in labels_df.iterrows():
         record_path = os.path.join(
@@ -272,9 +187,9 @@ def build_feature_matrix(physionet_dir, labels_path):
     df = df[col_order]
 
     # ── Print extraction report ──────────────────────────────────
-    print("\n" + "="*55)
+    print("\n" + SEPARATOR)
     print("FEATURE EXTRACTION COMPLETE")
-    print("="*55)
+    print(SEPARATOR)
     print(f"Noisy records excluded:  {noisy_excluded:>6,}")
     print(f"Successful extractions:  {len(results):>6,}")
     print(f"Failed extractions:      {len(failed):>6,}")

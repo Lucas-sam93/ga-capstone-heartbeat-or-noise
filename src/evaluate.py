@@ -1,15 +1,3 @@
-import numpy as np
-import pandas as pd
-from sklearn.base import clone
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import (
-    roc_auc_score,
-    f1_score,
-    confusion_matrix,
-    roc_curve
-)
-
 """
 evaluate.py
 ===========
@@ -23,6 +11,19 @@ natural selection framework for model selection.
 Called from: 03_modelling.ipynb
 """
 
+import numpy as np
+import pandas as pd
+from sklearn.base import clone
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    roc_auc_score,
+    f1_score,
+    confusion_matrix,
+)
+
+from .constants import SEPARATOR
+
 # ── Pre-registered success thresholds ────────────────────────────
 # Locked before any model training began.
 # These values cannot be changed after seeing results.
@@ -30,7 +31,19 @@ MIN_SENSITIVITY = 0.80
 MIN_SPECIFICITY = 0.75
 
 
-def find_optimal_threshold(model, X_test, y_test):
+def _compute_sens_spec(y_true: np.ndarray,
+                       y_pred: np.ndarray) -> tuple[float, float]:
+    """Compute sensitivity and specificity from true/predicted labels."""
+    tn, fp, fn, tp = confusion_matrix(
+        y_true, y_pred, labels=[0, 1]
+    ).ravel()
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+    return sensitivity, specificity
+
+
+def find_optimal_threshold(model, X_test: pd.DataFrame,
+                           y_test: pd.Series) -> dict:
     """
     Find the classification threshold that maximises
     specificity while meeting the minimum sensitivity floor.
@@ -60,75 +73,44 @@ def find_optimal_threshold(model, X_test, y_test):
         specificity     : float — specificity at threshold
         meets_criterion : bool  — True if MIN_SENSITIVITY met
     """
-    # Get probability scores for Abnormal class
     proba = model.predict_proba(X_test)[:, 1]
+    thresholds = np.arange(0.01, 1.00, 0.01)
 
-    best = {
-        'threshold':       0.5,
-        'sensitivity':     0.0,
-        'specificity':     0.0,
-        'meets_criterion': False
-    }
+    # Single scan — collect metrics at every threshold
+    best_meeting_floor = None   # Best specificity among those meeting sensitivity floor
+    best_overall_sens = None    # Highest sensitivity if no threshold meets floor
 
-    # Scan thresholds from low to high
-    # Low threshold = high sensitivity, low specificity
-    # High threshold = low sensitivity, high specificity
-    for thresh in np.arange(0.01, 1.00, 0.01):
+    for thresh in thresholds:
         preds = (proba >= thresh).astype(int)
-        tn, fp, fn, tp = confusion_matrix(
-            y_test, preds, labels=[0, 1]
-        ).ravel()
+        sens, spec = _compute_sens_spec(y_test, preds)
 
-        sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-
-        # Only consider thresholds that meet sensitivity floor
-        if sensitivity >= MIN_SENSITIVITY:
-            # Among those, maximise specificity
-            if specificity > best['specificity']:
-                best = {
+        # Track best threshold meeting sensitivity floor
+        if sens >= MIN_SENSITIVITY:
+            if (best_meeting_floor is None
+                    or spec > best_meeting_floor['specificity']):
+                best_meeting_floor = {
                     'threshold':       round(float(thresh), 2),
-                    'sensitivity':     round(sensitivity, 4),
-                    'specificity':     round(specificity, 4),
+                    'sensitivity':     round(sens, 4),
+                    'specificity':     round(spec, 4),
                     'meets_criterion': True
                 }
 
-    # If no threshold met the floor, return best sensitivity
-    # achieved — used for failure mode documentation
-    if not best['meets_criterion']:
-        best_sens = 0.0
-        best_thresh = 0.5
-        for thresh in np.arange(0.01, 1.00, 0.01):
-            preds = (proba >= thresh).astype(int)
-            tn, fp, fn, tp = confusion_matrix(
-                y_test, preds, labels=[0, 1]
-            ).ravel()
-            sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-            if sensitivity > best_sens:
-                best_sens = sensitivity
-                best_thresh = thresh
+        # Track best sensitivity overall (fallback)
+        if (best_overall_sens is None
+                or sens > best_overall_sens['sensitivity']):
+            best_overall_sens = {
+                'threshold':       round(float(thresh), 2),
+                'sensitivity':     round(sens, 4),
+                'specificity':     round(spec, 4),
+                'meets_criterion': False
+            }
 
-        tn, fp, fn, tp = confusion_matrix(
-            y_test,
-            (proba >= best_thresh).astype(int),
-            labels=[0, 1]
-        ).ravel()
-        best = {
-            'threshold':       round(float(best_thresh), 2),
-            'sensitivity':     round(
-                tp / (tp + fn) if (tp + fn) > 0 else 0, 4
-            ),
-            'specificity':     round(
-                tn / (tn + fp) if (tn + fp) > 0 else 0, 4
-            ),
-            'meets_criterion': False
-        }
-
-    return best
+    return best_meeting_floor if best_meeting_floor else best_overall_sens
 
 
-def cross_validate_models(models, X_train, y_train, n_folds=5,
-                          random_state=42):
+def cross_validate_models(models: dict, X_train: pd.DataFrame,
+                          y_train: pd.Series, n_folds: int = 5,
+                          random_state: int = 42) -> dict:
     """
     Five-fold stratified cross-validation with threshold
     optimisation applied independently within each fold.
@@ -246,7 +228,9 @@ def cross_validate_models(models, X_train, y_train, n_folds=5,
     return results
 
 
-def evaluate_model(name, model, X_test, y_test, label_col=None):
+def evaluate_model(name: str, model, X_test: pd.DataFrame,
+                   y_test: pd.Series,
+                   label_col: pd.Series | None = None) -> dict:
     """
     Full evaluation report for a single trained model.
 
@@ -335,9 +319,9 @@ def evaluate_model(name, model, X_test, y_test, label_col=None):
 
     # ── Print report ──────────────────────────────────────────────
     status = "PASS" if meets_criterion else "FAIL"
-    print(f"\n{'='*55}")
+    print(f"\n{SEPARATOR}")
     print(f"  {name.upper()} [{status}]")
-    print(f"{'='*55}")
+    print(f"{SEPARATOR}")
     print(f"  Optimal threshold : {threshold}")
     print(f"  Sensitivity       : {sensitivity:.1%}")
     print(f"  Specificity       : {specificity:.1%}")
@@ -368,7 +352,7 @@ def evaluate_model(name, model, X_test, y_test, label_col=None):
     }
 
 
-def select_best_model(reports, models):
+def select_best_model(reports: list[dict], models: dict) -> dict:
     """
     Apply the five-criterion natural selection framework
     to select the best model for Layer 2.
@@ -390,9 +374,9 @@ def select_best_model(reports, models):
         reason          : str — plain language selection reason
         eliminated      : list — names of eliminated models
     """
-    print(f"\n{'='*55}")
+    print(f"\n{SEPARATOR}")
     print("  MODEL SELECTION — NATURAL SELECTION FRAMEWORK")
-    print(f"{'='*55}")
+    print(f"{SEPARATOR}")
 
     # ── Criterion 1: Survival condition ──────────────────────────
     # Eliminate any model below sensitivity floor
