@@ -70,10 +70,20 @@ async def analyse(file: UploadFile = File(...)):
         df = parser(file_bytes)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"detail": str(e)})
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": f"Could not parse the uploaded file: {e}"},
+        )
 
     try:
         result = process_and_predict(df)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"detail": str(e)})
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Analysis failed unexpectedly: {e}"},
+        )
 
     return result

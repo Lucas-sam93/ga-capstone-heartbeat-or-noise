@@ -1276,12 +1276,14 @@
 
         // Drag-and-drop visual feedback
         dropZone.addEventListener("dragover", function (e) {
+            e.preventDefault(); // required — without this the browser rejects the drop
             dropZone.classList.add("drag-over");
         });
         dropZone.addEventListener("dragleave", function () {
             dropZone.classList.remove("drag-over");
         });
-        dropZone.addEventListener("drop", function () {
+        dropZone.addEventListener("drop", function (e) {
+            e.preventDefault(); // prevent browser navigating to the dropped file
             dropZone.classList.remove("drag-over");
         });
 
@@ -1376,8 +1378,8 @@
 
         /**
          * For large XML files (Apple Health export.xml can be 1-2 GB),
-         * extract heart rate records client-side using streaming text
-         * reader + regex, then build a small CSV to upload.
+         * extract heart rate records client-side using FileReader + slice,
+         * which works on all browsers including mobile Safari.
          */
         async function extractHrFromXml(file) {
             var records = [];
@@ -1385,24 +1387,28 @@
             var reStart = /startDate="([^"]+)"/;
             var reValue = /\bvalue="([^"]+)"/;
 
-            var reader = file.stream().getReader();
-            var decoder = new TextDecoder("utf-8");
-            var leftover = "";
-            var totalRead = 0;
+            var CHUNK = 1024 * 1024; // 1 MB per chunk
+            var offset = 0;
             var fileSize = file.size;
+            var leftover = "";
 
-            while (true) {
-                var result = await reader.read();
-                if (result.done) break;
-
-                totalRead += result.value.length;
-                var pct = Math.round((totalRead / fileSize) * 100);
+            while (offset < fileSize) {
+                var pct = Math.round((offset / fileSize) * 100);
                 btnText.textContent = "Reading XML\u2026 " + pct + "%";
 
-                var chunk = leftover + decoder.decode(result.value, { stream: true });
+                // Read next chunk via FileReader (universally supported)
+                var chunk = await new Promise(function (resolve, reject) {
+                    var fr = new FileReader();
+                    fr.onload = function (e) { resolve(e.target.result); };
+                    fr.onerror = function () { reject(new Error("Failed to read file.")); };
+                    fr.readAsText(file.slice(offset, offset + CHUNK));
+                });
+
+                chunk = leftover + chunk;
 
                 var match;
                 var lastIndex = 0;
+                re.lastIndex = 0;
                 while ((match = re.exec(chunk)) !== null) {
                     var tag = match[0];
                     var sm = reStart.exec(tag);
@@ -1413,14 +1419,18 @@
                     lastIndex = re.lastIndex;
                 }
 
-                // Keep unprocessed tail (may contain partial tag)
+                // Keep unprocessed tail (may contain a partial tag)
                 var tailStart = chunk.lastIndexOf("<Record", lastIndex);
                 if (tailStart > 0 && tailStart > lastIndex) {
                     leftover = chunk.slice(tailStart);
                 } else {
                     leftover = chunk.slice(Math.max(0, chunk.length - 500));
                 }
-                re.lastIndex = 0;
+
+                offset += CHUNK;
+
+                // Yield to browser so the UI stays responsive
+                await new Promise(function (r) { setTimeout(r, 0); });
             }
 
             if (records.length === 0) {
@@ -1480,6 +1490,16 @@
 
                 if (!response.ok) {
                     errorBox.textContent = data.detail || "An unexpected error occurred.";
+                    errorBox.style.display = "block";
+                    return;
+                }
+
+                // Guard against malformed or unexpected server response
+                var validTiers = ["Low", "Intermediate", "High"];
+                if (!data.risk_tier || validTiers.indexOf(data.risk_tier) === -1 ||
+                    data.pct_flagged === undefined || data.total_windows === undefined ||
+                    data.flagged_windows === undefined || data.days_analysed === undefined) {
+                    errorBox.textContent = "Unexpected response from server — please try again.";
                     errorBox.style.display = "block";
                     return;
                 }
