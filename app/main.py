@@ -58,12 +58,12 @@ async def analyse(file: UploadFile = File(...)):
 
     if filename.endswith(".csv"):
         parser = parse_apple_health_export
-    elif filename.endswith(".xml") or filename.endswith(".zip"):
+    elif filename.endswith(".xml"):
         parser = parse_apple_health_xml
     else:
         return JSONResponse(
             status_code=400,
-            content={"detail": "Unsupported file type. Please upload a .csv, .xml, or .zip file."},
+            content={"detail": "Unsupported file type. Please upload a .csv or .xml file."},
         )
 
     try:

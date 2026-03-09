@@ -1106,7 +1106,7 @@
         <div class="upload-section">
             <h2>Upload your data</h2>
             <p class="subtext">
-                Export your data from the Apple Health app as a CSV or XML file.
+                Export your data from the Apple Health app and upload a CSV or XML file.
                 BeatCheck analyses your heart rate data from the past 90 days.
             </p>
             <div class="how-to-guide">
@@ -1122,13 +1122,13 @@
                     </div>
                     <div class="how-to-step">
                         <div class="how-to-step-num" aria-hidden="true">3</div>
-                        <p class="how-to-step-text">An iOS <strong>share sheet</strong> will appear. Tap <strong>Save to Files</strong>, choose a folder (e.g. <em>iCloud Drive</em> or <em>On My iPhone</em>), then tap <strong>Save</strong>. The file is named <strong>export.zip</strong> — upload it here exactly as-is. <em>Do not unzip it.</em></p>
+                        <p class="how-to-step-text">An iOS <strong>share sheet</strong> will appear. Tap <strong>Save to Files</strong>, choose a folder (e.g. <em>iCloud Drive</em> or <em>On My iPhone</em>), then tap <strong>Save</strong>. Apple saves a file called <strong>export.zip</strong>. Open the <strong>Files</strong> app, find that ZIP, and tap-and-hold it to select <strong>Uncompress</strong>. Open the resulting folder and locate <strong>export.xml</strong> — upload that file here.</p>
                     </div>
                 </div>
             </div>
 
             <div class="drop-zone" id="drop-zone">
-                <input type="file" id="file-input" accept=".csv,.xml,.zip" aria-label="Select health data file">
+                <input type="file" id="file-input" accept=".csv,.xml" aria-label="Select health data file">
                 <div class="drop-zone-content">
                     <div class="drop-zone-icon">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1140,7 +1140,7 @@
                     <div class="drop-zone-text">
                         <span class="browse">Choose a file</span> or drag it here
                     </div>
-                    <div class="drop-zone-hint">CSV, XML, or ZIP files from Apple Health</div>
+                    <div class="drop-zone-hint">CSV or XML files from Apple Health</div>
                 </div>
                 <div class="file-name" id="file-name">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1375,77 +1375,6 @@
         }
 
         /**
-         * For ZIP files (Apple Health Export.zip), extract export.xml
-         * and stream-decompress + parse simultaneously.
-         * Uses async("string") with chunked regex as fallback-safe approach.
-         */
-        async function extractHrFromZip(file) {
-            if (typeof JSZip === "undefined") {
-                throw new Error(
-                    "ZIP support failed to load. Please extract your " +
-                    "Export.zip and upload the export.xml file directly."
-                );
-            }
-
-            btnText.textContent = "Opening ZIP\u2026";
-
-            // Yield to browser so the button text renders before heavy work
-            await new Promise(function (r) { requestAnimationFrame(r); });
-
-            var zip = await JSZip.loadAsync(file);
-
-            // Find export.xml inside the ZIP
-            var xmlEntry = null;
-            zip.forEach(function (path, entry) {
-                if (!entry.dir && path.toLowerCase().endsWith("export.xml")) {
-                    xmlEntry = entry;
-                }
-            });
-
-            if (!xmlEntry) {
-                throw new Error(
-                    "ZIP file does not contain an export.xml \u2014 " +
-                    "please upload the Apple Health export ZIP."
-                );
-            }
-
-            btnText.textContent = "Extracting heart rate data\u2026";
-            await new Promise(function (r) { requestAnimationFrame(r); });
-
-            // Decompress to string — then regex-parse for HR records
-            var xmlStr = await xmlEntry.async("string");
-
-            var records = [];
-            var re = /<Record[^>]*HKQuantityTypeIdentifierHeartRate[^>]*>/g;
-            var reStart = /startDate="([^"]+)"/;
-            var reValue = /\bvalue="([^"]+)"/;
-            var match;
-
-            while ((match = re.exec(xmlStr)) !== null) {
-                var tag = match[0];
-                var sm = reStart.exec(tag);
-                var vm = reValue.exec(tag);
-                if (sm && vm) {
-                    records.push(sm[1] + "," + vm[1]);
-                }
-            }
-
-            // Free the large string from memory
-            xmlStr = null;
-
-            if (records.length === 0) {
-                throw new Error("No heart rate records found in the XML file.");
-            }
-
-            var csv = "startDate,value,type\n" +
-                records.map(function (r) {
-                    return r + ",HKQuantityTypeIdentifierHeartRate";
-                }).join("\n");
-
-            return new File([csv], "apple_health_hr.csv", { type: "text/csv" });
-        }
-
-        /**
          * For large XML files (Apple Health export.xml can be 1-2 GB),
          * extract heart rate records client-side using streaming text
          * reader + regex, then build a small CSV to upload.
@@ -1521,11 +1450,8 @@
                 var uploadFile = file;
                 var name = file.name.toLowerCase();
 
-                // Client-side extraction — keeps large files out of server memory
-                if (name.endsWith(".zip")) {
-                    uploadFile = await extractHrFromZip(file);
-                    btnText.textContent = "Analysing\u2026";
-                } else if (name.endsWith(".xml")) {
+                // Client-side extraction for large XML files
+                if (name.endsWith(".xml")) {
                     uploadFile = await extractHrFromXml(file);
                     btnText.textContent = "Analysing\u2026";
                 }
