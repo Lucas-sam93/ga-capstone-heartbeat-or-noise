@@ -10,7 +10,6 @@ Called from: 02_feature_engineering.ipynb
 
 import os
 
-import numpy as np
 import pandas as pd
 
 # Physiological plausibility thresholds
