@@ -2,14 +2,34 @@
 Last updated: March 2026
 Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). Layer 2 MIMIC PERform AF validation complete. Research loop closed. App build complete.
 
+---
+
+## Quick Reference
+
+| Item | Value |
+|---|---|
+| Selected model | SVM |
+| Layer 1 threshold | 0.34 (fixed — do not change for Layer 2 evaluation) |
+| App threshold | 0.8368 (LOOCV mean — domain-adapted for PPG modality) |
+| Layer 1 test AUROC | 0.9080 |
+| Layer 2 MIMIC AUROC | 0.8586 |
+| Feature matrix | data/processed/physionet_features.csv (8,187 rows) |
+| Trained model | outputs/models/selected_model.joblib |
+| Scaler | outputs/models/scaler.joblib |
+| Environment | conda activate cvd_project |
+| Next steps | Retrieve ECG report → Write final narrative → GitHub |
+
+---
+
 
 ### How to Update
 1. Open CLAUDE.md at the project root
 2. Update the Phase Tracker checkboxes to reflect completed work
-3. Add any new locked decisions to the Key Methodological Decisions table
+3. Add any new locked decisions to the Key Methodological Decisions table — existing decisions are immutable once recorded
 4. Add confirmed output file paths and record counts to the Confirmed Outputs table
-5. Update the Current Project Status section at the bottom
-6. Save the file before proceeding to the next implementation step
+5. Update the Current Project Status section at the bottom, including the **Last updated** date
+6. Update the Quick Reference block at the top if key numbers (thresholds, model, results) change
+7. Save the file before proceeding to the next implementation step
 
 ### What Never to Change
 Do not modify the Behavioural Rules, the What This Project Is Not section, the research question, or any locked decision already recorded. These are fixed. If a situation arises that appears to require changing a locked decision, stop and flag it to Lucas explicitly before touching this file.
@@ -504,7 +524,7 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 - [x] Stress testing — bootstrap AUROC, bootstrap recalibrated metrics, LOOCV
 - [x] Sensitivity-targeted LOOCV
 - [x] BeatCheck app built and stress-tested
-- [x] XML and ZIP input formats supported
+- [x] CSV and XML input formats supported (ZIP direct upload removed from UI)
 - [x] Client-side XML streaming implemented (handles large exports)
 - [x] Stress test passed — Intermediate tier, 602 windows, 84 days
 - [ ] ECG report retrieved
@@ -514,7 +534,7 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 - [ ] Research question answered
 - [ ] Singapore public health implications addressed
 - [ ] Limitations documented
-- [ ] GitHub repository created
+- [x] GitHub repository created
 
 ---
 
@@ -613,11 +633,22 @@ Every figure produced must satisfy all of the following without exception:
 - All axes labelled with units where applicable
 - All figures include a title
 
+### Hard Prohibitions — Never Do These
+- Never call `fit_transform()` on validation, test, or Layer 2 data — `transform()` only
+- Never retrain any model after Layer 1 training is complete
+- Never adjust the fixed threshold (0.34) when evaluating Layer 2 datasets
+- Never modify raw data files in data/physionet/, data/apple_watch/, or data/mimic_perform_af/
+- Never impute missing values in the Apple Watch feature merge — drop windows with no HRV record
+- Never change the locked 8-feature set — no additions, no substitutions
+
 ### Decision Protocol
 Every decision requires Lucas's explicit approval. No exceptions.
 
 ### Environment Protocol
 Confirm cvd_project active. Confirm working directory before relative paths.
+
+To activate: `conda activate cvd_project`
+To confirm working directory: `import os; os.getcwd()` — must resolve to `C:\Projects\GA Capstone Project`
 
 ---
 
@@ -641,7 +672,7 @@ Confirm cvd_project active. Confirm working directory before relative paths.
 
 **Layer 2 — MIMIC PERform AF (Primary):** Complete. 35 subjects, all green tier. Sensitivity 100%, Specificity 12.5%, AUROC 0.8586. Tier 1 PASS, Tier 2 FAIL (specificity), Tier 3 PASS. Modality gap (8 large KS distances) explains threshold miscalibration. AUROC confirms discriminative signal transfers across modalities. Research loop closed.
 
-**App — BeatCheck:** Complete. FastAPI backend + clinical frontend. Accepts CSV, XML, Export.zip. Client-side streaming for large XML. Stress-tested with real Apple Health export — Intermediate tier, 38.2% windows flagged across 84 days.
+**App — BeatCheck:** Complete. FastAPI backend + clinical frontend. Accepts CSV and XML (ZIP direct upload removed). Client-side streaming for large XML. Stress-tested with real Apple Health export — Intermediate tier, 38.2% windows flagged across 84 days.
 
 **Immediate next steps:**
 1. Retrieve June 2025 ECG report
