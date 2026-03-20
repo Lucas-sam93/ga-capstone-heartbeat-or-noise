@@ -17,7 +17,7 @@ Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). L
 | Trained model | outputs/models/selected_model.joblib |
 | Scaler | outputs/models/scaler.joblib |
 | Environment | conda activate cvd_project |
-| Next steps | Retrieve ECG report → Write final narrative → GitHub |
+| Next steps | Write final narrative → GitHub |
 
 ---
 
@@ -258,12 +258,49 @@ Summary: 5 large (KS > 0.3), 3 moderate (0.1-0.3), 0 small. No feature transferr
 - Tier 3: FAIL — Tier 2 not passed
 
 ### Null Result Interpretation
-Two plausible non-mutually-exclusive explanations:
+Three plausible non-mutually-exclusive explanations:
 1. Signal modality gap — 5 of 8 features show large KS distances. Model operating outside training distribution.
 2. Behavioural confound — reduced training intensity in pre-anchor period may have shifted HRV toward more regular patterns interpreted as normal by the model.
+3. Abnormality type mismatch — ECG report confirms intraventricular conduction delay (waveform morphology), not a rhythm irregularity. HRV features measure beat-to-beat timing variability and are structurally incapable of detecting conduction delays, which produce regular-but-abnormally-shaped beats.
 
 ### N=1 Structural Limitation
 Personal Apple Watch data is structurally weak for this validation — single individual, one event, approximated HRV, no comparison group. Null result motivated pivot to MIMIC PERform AF as primary Layer 2 validation.
+
+---
+
+## Clinical ECG Report — June 2025 Anchor Event
+
+### Report Details
+- **Source:** National Heart Centre Singapore (NHCS), Department of Cardiology
+- **Date:** 18 June 2025, 10:19:48 AM — confirms pre-registered anchor date
+- **Certifying physician:** Dr Chong Jia Yun, B.Med, FRACP
+- **Report date:** 17 March 2026
+
+### ECG Parameters
+| Parameter | Value |
+|---|---|
+| Heart Rate | 112 bpm |
+| PR Interval | 125 ms |
+| QRS Duration | 125 ms |
+| QT/QTc | 424 ms |
+
+### Automated Interpretation
+- Sinus rhythm
+- Intraventricular conduction delay
+- ST abnormality (probable anterior early repolarisation)
+- **Overall: Abnormal ECG**
+
+### Implications for Project
+1. **Confirms anchor date:** June 18, 2025 clinical ECG aligns exactly with the pre-registered anchor point used throughout the Apple Watch analysis.
+2. **Confirms abnormal classification:** The ECG was flagged as abnormal, validating the binary label (Abnormal=1) assigned to the anchor event.
+3. **Critical insight — conduction delay vs arrhythmia:** The specific abnormality is an intraventricular conduction delay, NOT an arrhythmia (e.g., AF). This is a waveform morphology abnormality — it affects QRS shape and ST segment, not beat-to-beat timing. HRV features (RMSSD, SDNN, pNN50, etc.) are designed to detect rhythm irregularities through inter-beat interval variability. A conduction delay produces regular-but-abnormally-shaped beats, which would appear normal to any HRV-based analysis.
+4. **Third explanation for Apple Watch null result:** In addition to (a) signal modality gap and (b) behavioural confound, the nature of the abnormality itself provides a mechanistic explanation — HRV features are structurally incapable of detecting this type of cardiac abnormality. This strengthens the null result interpretation by showing the model was asked to detect something its feature set cannot capture.
+5. **Reinforces project scope:** The locked 8-feature HRV set was designed for rhythm anomaly detection (AF and Other). The ECG finding demonstrates that real-world cardiac abnormalities encompass a broader spectrum than rhythm irregularities alone — a genuine limitation of HRV-only screening.
+
+### Files
+- Original (encrypted): data/ECG Report.pdf
+- Decrypted copy: data/ecg_report_decrypted.pdf
+- Page images: data/ecg_page_1.png, data/ecg_page_2.png
 
 ---
 
@@ -468,6 +505,10 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 | app/static/index.html | app/static/ | BeatCheck frontend | Complete |
 | app/models/scaler.joblib | app/models/ | Copy from outputs/models/ | Complete |
 | app/models/selected_model.joblib | app/models/ | Copy from outputs/models/ | Complete |
+| ECG Report.pdf | data/ | Encrypted clinical ECG report (NHCS) | Complete |
+| ecg_report_decrypted.pdf | data/ | Decrypted copy | Complete |
+| ecg_page_1.png | data/ | Cover letter image | Complete |
+| ecg_page_2.png | data/ | ECG tracing image | Complete |
 
 ---
 
@@ -527,7 +568,7 @@ Both point to the same conclusion: modality gap is the central obstacle to direc
 - [x] CSV and XML input formats supported (ZIP direct upload removed from UI)
 - [x] Client-side XML streaming implemented (handles large exports)
 - [x] Stress test passed — Intermediate tier, 602 windows, 84 days
-- [ ] ECG report retrieved
+- [x] ECG report retrieved — Abnormal ECG: intraventricular conduction delay + ST abnormality
 - [ ] Final narrative written
 
 ### Phase 7 — Conclusions

@@ -181,7 +181,7 @@ Summary: 5 large (KS > 0.3), 3 moderate (0.1–0.3), 0 small. No feature transfe
 
 **Tier assessment:** Tier 1 PASS — Tier 2 FAIL — Tier 3 FAIL
 
-**Null result interpretation:** Two non-mutually-exclusive explanations: (1) signal modality gap — 5 of 8 features show large KS distances, placing Apple Watch windows outside the model's training distribution; (2) behavioural confound — reduced training intensity in the pre-anchor period may have shifted HRV toward more regular patterns that the model interprets as normal. The N=1 design cannot disambiguate these explanations.
+**Null result interpretation:** Three non-mutually-exclusive explanations: (1) signal modality gap — 5 of 8 features show large KS distances, placing Apple Watch windows outside the model's training distribution; (2) behavioural confound — reduced training intensity in the pre-anchor period may have shifted HRV toward more regular patterns that the model interprets as normal; (3) abnormality type mismatch — the clinical ECG report confirms an intraventricular conduction delay (waveform morphology abnormality), not a rhythm irregularity. HRV features measure beat-to-beat timing variability and are structurally incapable of detecting conduction delays, which produce regular-but-abnormally-shaped beats. The N=1 design cannot disambiguate these explanations.
 
 ### Layer 2 — MIMIC PERform AF Primary Validation (Complete)
 
@@ -427,15 +427,37 @@ pip install -r app/requirements.txt
 
 **Key conclusion:** Modality gap is the central obstacle to direct generalisation from ECG to PPG. AUROC confirms discriminative signal transfers across modalities. Threshold recalibration recovers specificity from 12.5% to 81.2%+ in LOOCV, demonstrating the failure is calibration-based rather than a discrimination failure.
 
-**Remaining:**
-1. Retrieve June 2025 ECG report
-2. Write final narrative and conclusions
+**ECG Report (June 2025):** Retrieved. Abnormal ECG confirmed — sinus rhythm with intraventricular conduction delay and ST abnormality (probable anterior early repolarisation). The conduction delay is a waveform morphology abnormality, not a rhythm irregularity, providing a mechanistic explanation for the Apple Watch null result.
+
+---
+
+## Conclusion
+
+### Answering the Research Question
+
+*Can machine learning models trained on clinical ECG data generalise to consumer wearable signals to detect cardiac rhythm anomalies, and are consumer wearables feasible as proxy cardiac screening tools for the general population?*
+
+**The answer is a qualified yes.** The discriminative signal trained on clinical ECG data transfers meaningfully to consumer wearable PPG signals, but direct threshold generalisation fails due to the modality gap between clinical and consumer measurement systems.
+
+Layer 1 established that an SVM classifier trained on 8 HRV features from 8,187 clinical ECG recordings achieves 84.4% sensitivity and 87.3% specificity (AUROC 0.9080) on held-out test data — surpassing the pre-registered criterion of sensitivity ≥80% at specificity ≥75%. The model demonstrates strong discriminative ability for distinguishing normal from abnormal cardiac rhythms using only features extractable from consumer wearables.
+
+Layer 2 tested whether this performance transfers to real wearable data. The MIMIC PERform AF validation (N=35) revealed the central finding: AUROC 0.8586 confirms the model retains genuine discriminative ability across modalities, but the fixed ECG-calibrated threshold (0.34) produces 100% sensitivity at only 12.5% specificity. This is not a discrimination failure — it is a calibration failure. When the threshold is recalibrated for the PPG domain (0.8368 via LOOCV), sensitivity-targeted LOOCV recovers 78.9% sensitivity at 81.2% specificity, approaching the pre-registered criterion within the variance expected from N=35 leave-one-out evaluation.
+
+The Apple Watch N=1 case study produced a null result — probability scores were not elevated around the clinical anchor event. Three non-mutually-exclusive explanations account for this: the signal modality gap, a behavioural confound from reduced training intensity, and critically, the nature of the clinical finding itself. The ECG report from the National Heart Centre Singapore confirms an intraventricular conduction delay — a waveform morphology abnormality that affects QRS shape, not beat-to-beat timing. HRV features, which measure inter-beat interval variability, are structurally incapable of detecting this type of abnormality. This finding narrows the project's validated scope to rhythm irregularities specifically, while demonstrating that real-world cardiac abnormalities encompass a broader spectrum than HRV-based screening can capture.
+
+### Implications for Singapore Public Health
+
+With 49% of Singapore residents foregoing annual health checkups and cardiovascular disease claiming approximately 22 lives daily, the screening gap is real and consequential. Consumer wearables are already worn by millions and continuously collect cardiac data without requiring active participation.
+
+This project demonstrates that the bridge from clinical models to consumer wearable signals is feasible but not yet direct. The discriminative signal transfers (AUROC 0.86 across modalities), but deployment requires domain-adapted thresholds calibrated to the specific wearable measurement system. A clinical ECG threshold applied directly to PPG data will over-flag — producing unnecessary anxiety and clinical referrals. A recalibrated threshold restores clinically meaningful specificity.
+
+For Singapore's public health strategy, the practical path forward involves: (1) training or adapting models with PPG-specific calibration data from the target population; (2) partnering with wearable manufacturers to access richer signal data (raw RR intervals rather than summary statistics); and (3) validating on larger, population-representative cohorts rather than ICU patients. The technology is not ready for autonomous screening today, but the discriminative foundation is present — the engineering problem is calibration, not capability.
 
 ---
 
 ## Limitations
 
-This project does not constitute a clinical trial and does not produce a validated medical device. The personal Apple Watch analysis is a single-subject case study and its findings cannot be generalised to the broader population. Consumer wearable data is derived from optical heart rate sensors, which measure cardiac activity through a fundamentally different mechanism than the clinical ECG recordings used for model training. The Apple Watch SE used in this study does not have an electrical heart sensor and cannot produce ECG recordings. RMSSD values in the Apple Watch feature matrix are approximated from SDNN and should be interpreted accordingly. The MIMIC PERform AF validation uses 35 critically ill ICU subjects — a population that differs from the general screening target. Threshold recalibration and LOOCV results were computed on the same 35 subjects and should be interpreted as indicative rather than definitive. All personal data findings are presented as exploratory and hypothesis-generating.
+This project does not constitute a clinical trial and does not produce a validated medical device. The personal Apple Watch analysis is a single-subject case study and its findings cannot be generalised to the broader population. Consumer wearable data is derived from optical heart rate sensors, which measure cardiac activity through a fundamentally different mechanism than the clinical ECG recordings used for model training. The Apple Watch SE used in this study does not have an electrical heart sensor and cannot produce ECG recordings. RMSSD values in the Apple Watch feature matrix are approximated from SDNN and should be interpreted accordingly. The MIMIC PERform AF validation uses 35 critically ill ICU subjects — a population that differs from the general screening target. Threshold recalibration and LOOCV results were computed on the same 35 subjects and should be interpreted as indicative rather than definitive. The locked 8-feature HRV set detects rhythm irregularities (beat-to-beat timing abnormalities) but cannot detect morphological abnormalities such as conduction delays or ST changes, which affect waveform shape rather than inter-beat timing — as demonstrated by the clinical ECG report findings. All personal data findings are presented as exploratory and hypothesis-generating.
 
 ---
 
