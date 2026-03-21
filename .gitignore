@@ -37,3 +37,31 @@ venv/
 env/
 .env/
 .venv/
+
+# =============================================
+# PERSONAL MEDICAL DATA — Never commit
+# =============================================
+data/ECG Report.pdf
+data/ecg_report_decrypted.pdf
+data/ecg_page_1.png
+data/ecg_page_2.png
+
+# =============================================
+# GENERATED OUTPUTS — Office files
+# =============================================
+*.docx
+
+# =============================================
+# IDE / TOOLING — Local config artifacts
+# =============================================
+.claude/
+
+# =============================================
+# AI TOOLING ARTIFACTS — Not project content
+# =============================================
+docs/superpowers/
+
+# =============================================
+# INTERNAL MANIFESTS — Generated metadata
+# =============================================
+outputs/figures/figures_log.csv
