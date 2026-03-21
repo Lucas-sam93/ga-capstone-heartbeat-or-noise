@@ -16,3 +16,33 @@ threshold_recalibration_2026.png,Sensitivity and specificity comparison -- fixed
 bootstrap_auroc_distribution_2026.png,"Bootstrap AUROC 95% CI for SVM on MIMIC PERform AF -- mean 0.8631, CI [0.7246, 0.9720]",06_technical_report.ipynb,Cell 17,Stress Testing,3/20/2026
 loocv_comparison_2026.png,LOOCV comparison -- Youden's J vs sensitivity-targeted threshold on MIMIC PERform AF,06_technical_report.ipynb,Cell 18,Stress Testing,3/20/2026
 risk_tier_explanation_2026.png,"BeatCheck app risk tier system -- Low, Intermediate, High with plain-English interpretations",06_technical_report.ipynb,Cell 19,App Risk Tiers,3/20/2026
+class_distribution_2026.png,Training data class distribution (3-class and binary),06_technical_report.ipynb,Code Cell 3,Section 2,2026-03-21
+pipeline_flowchart_2026.png,End-to-end screening system pipeline flowchart,06_technical_report.ipynb,Code Cell 4,Section 1,2026-03-21
+feature_descriptions_2026.png,Feature descriptions and Random Forest importance ranking,06_technical_report.ipynb,Code Cell 5,Section 3,2026-03-21
+feature_distributions_by_class_2026.png,Feature distributions Normal vs Abnormal (violin + boxplot),06_technical_report.ipynb,Code Cell 6,Section 3,2026-03-21
+feature_correlation_heatmap_2026.png,Pearson correlation heatmap of 8 HRV features,06_technical_report.ipynb,Code Cell 7,Section 3,2026-03-21
+model_comparison_scorecard_2026.png,Model comparison Cleveland dot plot (validation set),06_technical_report.ipynb,Code Cell 8,Section 4,2026-03-21
+roc_curve_svm_layer1_2026.png,ROC curve SVM Layer 1 test set with operating point at 0.34,06_technical_report.ipynb,Code Cell 9,Section 4,2026-03-21
+confusion_matrix_svm_layer1_2026.png,Confusion matrix SVM Layer 1 test set,06_technical_report.ipynb,Code Cell 10,Section 4,2026-03-21
+feature_importance_2026.png,Random Forest feature importance horizontal bar chart,06_technical_report.ipynb,Code Cell 11,Section 3,2026-03-21
+modality_gap_ks_distances_2026.png,KS distances MIMIC PERform AF vs Physionet training distribution,06_technical_report.ipynb,Code Cell 13,Section 4b,2026-03-21
+mimic_probability_scores_2026.png,MIMIC PERform AF probability scores by label (strip plot),06_technical_report.ipynb,Code Cell 14,Section 4b,2026-03-21
+threshold_recalibration_2026.png,Threshold recalibration before/after on MIMIC PERform AF,06_technical_report.ipynb,Code Cell 15,Section 4b,2026-03-21
+bootstrap_auroc_distribution_2026.png,Bootstrap AUROC 95% CI horizontal plot with interpretation zones,06_technical_report.ipynb,Code Cell 16,Section 4b,2026-03-21
+loocv_comparison_2026.png,LOOCV comparison Youden's J vs sensitivity-targeted threshold,06_technical_report.ipynb,Code Cell 17,Section 4b,2026-03-21
+risk_tier_explanation_2026.png,BeatCheck 3-tier risk classification infographic,06_technical_report.ipynb,Code Cell 18,Section 4c,2026-03-21
+class_distribution_2026.png,Training data class distribution (3-class and binary),06_technical_report.ipynb,Code Cell 3,Section 2,2026-03-21
+pipeline_flowchart_2026.png,End-to-end screening system pipeline flowchart,06_technical_report.ipynb,Code Cell 4,Section 1,2026-03-21
+feature_descriptions_2026.png,Feature descriptions and Random Forest importance ranking,06_technical_report.ipynb,Code Cell 5,Section 3,2026-03-21
+feature_distributions_by_class_2026.png,Feature distributions Normal vs Abnormal (violin + boxplot),06_technical_report.ipynb,Code Cell 6,Section 3,2026-03-21
+feature_correlation_heatmap_2026.png,Pearson correlation heatmap of 8 HRV features,06_technical_report.ipynb,Code Cell 7,Section 3,2026-03-21
+model_comparison_scorecard_2026.png,Model comparison Cleveland dot plot (validation set),06_technical_report.ipynb,Code Cell 8,Section 4,2026-03-21
+roc_curve_svm_layer1_2026.png,ROC curve SVM Layer 1 test set with operating point at 0.34,06_technical_report.ipynb,Code Cell 9,Section 4,2026-03-21
+confusion_matrix_svm_layer1_2026.png,Confusion matrix SVM Layer 1 test set,06_technical_report.ipynb,Code Cell 10,Section 4,2026-03-21
+feature_importance_2026.png,Random Forest feature importance horizontal bar chart,06_technical_report.ipynb,Code Cell 11,Section 3,2026-03-21
+modality_gap_ks_distances_2026.png,KS distances MIMIC PERform AF vs Physionet training distribution,06_technical_report.ipynb,Code Cell 13,Section 4b,2026-03-21
+mimic_probability_scores_2026.png,MIMIC PERform AF probability scores by label (strip plot),06_technical_report.ipynb,Code Cell 14,Section 4b,2026-03-21
+threshold_recalibration_2026.png,Threshold recalibration before/after on MIMIC PERform AF,06_technical_report.ipynb,Code Cell 15,Section 4b,2026-03-21
+bootstrap_auroc_distribution_2026.png,Bootstrap AUROC 95% CI horizontal plot with interpretation zones,06_technical_report.ipynb,Code Cell 16,Section 4b,2026-03-21
+loocv_comparison_2026.png,LOOCV comparison Youden's J vs sensitivity-targeted threshold,06_technical_report.ipynb,Code Cell 17,Section 4b,2026-03-21
+risk_tier_explanation_2026.png,BeatCheck 3-tier risk classification infographic,06_technical_report.ipynb,Code Cell 18,Section 4c,2026-03-21
