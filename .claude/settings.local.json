@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python -c \"import json; d=json.load\\(open\\(''c:/Projects/GA Capstone Project/outputs/models/evaluation_report.json''\\)\\); print\\(list\\(d.keys\\(\\)\\)\\); [print\\(k, '':'', list\\(v.keys\\(\\)\\) if isinstance\\(v,dict\\) else type\\(v\\)\\) for k,v in d.items\\(\\)]\")",
-      "Bash(python3 -c \"import json; d=json.load\\(open\\(''c:/Projects/GA Capstone Project/outputs/models/evaluation_report.json''\\)\\); print\\(list\\(d.keys\\(\\)\\)\\); [print\\(k, '':'', list\\(v.keys\\(\\)\\) if isinstance\\(v,dict\\) else type\\(v\\)\\) for k,v in d.items\\(\\)]\")"
-    ]
-  }
-}
