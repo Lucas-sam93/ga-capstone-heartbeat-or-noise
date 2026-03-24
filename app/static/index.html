@@ -842,6 +842,61 @@
             font-weight: 600;
         }
 
+        .how-to-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: -1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .how-to-tab {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            font-family: var(--font-body);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: transparent;
+            border: 1px solid var(--color-border-light);
+            border-bottom: none;
+            cursor: pointer;
+            transition: color var(--transition-fast), background var(--transition-fast);
+            text-align: center;
+        }
+
+        .how-to-tab:first-child {
+            border-radius: var(--radius) 0 0 0;
+        }
+
+        .how-to-tab:last-child {
+            border-radius: 0 var(--radius) 0 0;
+            border-left: none;
+        }
+
+        .how-to-tab.active {
+            color: var(--color-primary);
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-surface);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .how-to-tab.active {
+                background: rgba(19, 28, 46, 0.6);
+                border-bottom-color: rgba(19, 28, 46, 0.6);
+            }
+        }
+
+        .how-to-tab-panel {
+            display: none;
+        }
+
+        .how-to-tab-panel.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
         /* ---- Proceed button (page 1 → page 2) ---- */
         .proceed-row {
             text-align: center;
@@ -1224,18 +1279,38 @@
             </p>
             <div class="how-to-guide">
                 <p class="how-to-guide-heading">How to export from Apple Health</p>
+                <div class="how-to-tabs">
+                    <button class="how-to-tab active" data-tab="mobile" type="button">iPhone / iPad</button>
+                    <button class="how-to-tab" data-tab="pc" type="button">PC / Mac</button>
+                </div>
                 <div class="how-to-steps">
-                    <div class="how-to-step">
-                        <div class="how-to-step-num" aria-hidden="true">1</div>
-                        <p class="how-to-step-text">Open the <strong>Health</strong> app on your iPhone. On the <strong>Summary</strong> tab, tap your <strong>profile photo or initials</strong> in the top-right corner to open your profile page.</p>
+                    <div class="how-to-tab-panel active" id="tab-mobile">
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">1</div>
+                            <p class="how-to-step-text">Open the <strong>Health</strong> app on your iPhone. On the <strong>Summary</strong> tab, tap your <strong>profile photo or initials</strong> in the top-right corner to open your profile page.</p>
+                        </div>
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">2</div>
+                            <p class="how-to-step-text">Scroll to the <strong>very bottom</strong> of the profile page and tap <strong>Export All Health Data</strong>. A confirmation prompt will appear — tap <strong>Export</strong>. Apple will prepare the file; this can take <strong>1–5 minutes</strong> if you have several years of data.</p>
+                        </div>
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">3</div>
+                            <p class="how-to-step-text">An iOS <strong>share sheet</strong> will appear. Tap <strong>Save to Files</strong>, choose a folder (e.g. <em>iCloud Drive</em> or <em>On My iPhone</em>), then tap <strong>Save</strong>. Apple saves a file called <strong>export.zip</strong>. Open the <strong>Files</strong> app, find that ZIP, and tap-and-hold it to select <strong>Uncompress</strong>. Open the resulting folder and locate <strong>export.xml</strong> — upload that file here.</p>
+                        </div>
                     </div>
-                    <div class="how-to-step">
-                        <div class="how-to-step-num" aria-hidden="true">2</div>
-                        <p class="how-to-step-text">Scroll to the <strong>very bottom</strong> of the profile page and tap <strong>Export All Health Data</strong>. A confirmation prompt will appear — tap <strong>Export</strong>. Apple will prepare the file; this can take <strong>1–5 minutes</strong> if you have several years of data.</p>
-                    </div>
-                    <div class="how-to-step">
-                        <div class="how-to-step-num" aria-hidden="true">3</div>
-                        <p class="how-to-step-text">An iOS <strong>share sheet</strong> will appear. Tap <strong>Save to Files</strong>, choose a folder (e.g. <em>iCloud Drive</em> or <em>On My iPhone</em>), then tap <strong>Save</strong>. Apple saves a file called <strong>export.zip</strong>. Open the <strong>Files</strong> app, find that ZIP, and tap-and-hold it to select <strong>Uncompress</strong>. Open the resulting folder and locate <strong>export.xml</strong> — upload that file here.</p>
+                    <div class="how-to-tab-panel" id="tab-pc">
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">1</div>
+                            <p class="how-to-step-text">First, export your data on your iPhone using steps 1–2 from the <strong>iPhone / iPad</strong> tab above. When the share sheet appears, choose <strong>Save to Files</strong> and save to <strong>iCloud Drive</strong>.</p>
+                        </div>
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">2</div>
+                            <p class="how-to-step-text">On your <strong>PC</strong>, open <strong>iCloud.com</strong> in a browser and sign in with your Apple ID. Go to <strong>iCloud Drive</strong> and download <strong>export.zip</strong>. On a <strong>Mac</strong>, open <strong>Finder</strong> and find the file in your <strong>iCloud Drive</strong> folder. Alternatively, you can <strong>email</strong> or <strong>AirDrop</strong> the file to your computer from the share sheet.</p>
+                        </div>
+                        <div class="how-to-step">
+                            <div class="how-to-step-num" aria-hidden="true">3</div>
+                            <p class="how-to-step-text">On your computer, <strong>extract</strong> (unzip) the downloaded <strong>export.zip</strong>. Open the extracted folder, locate <strong>export.xml</strong>, and upload that file here.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1411,6 +1486,16 @@
         var fileNameText = document.getElementById("file-name-text");
         var progressRingFill = document.getElementById("progress-ring-fill");
         var progressPct = document.getElementById("progress-pct");
+
+        // How-to tab switching
+        document.querySelectorAll(".how-to-tab").forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                document.querySelectorAll(".how-to-tab").forEach(function (t) { t.classList.remove("active"); });
+                document.querySelectorAll(".how-to-tab-panel").forEach(function (p) { p.classList.remove("active"); });
+                tab.classList.add("active");
+                document.getElementById("tab-" + tab.getAttribute("data-tab")).classList.add("active");
+            });
+        });
 
         // Page 1: checkbox gates proceed button
         function updateProceedState() {
