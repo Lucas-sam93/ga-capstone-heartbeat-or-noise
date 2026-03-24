@@ -1585,6 +1585,58 @@
         }
 
         /**
+         * For large Apple Health CSV exports, filter to heart rate rows
+         * from the past 90 days client-side before uploading.
+         * Reduces a 30+ MB multi-year export to a few hundred KB.
+         */
+        async function extractHrFromCsv(file) {
+            var text = await new Promise(function (resolve, reject) {
+                var fr = new FileReader();
+                fr.onload = function (e) { resolve(e.target.result); };
+                fr.onerror = function () { reject(new Error("Failed to read CSV file.")); };
+                fr.readAsText(file);
+            });
+
+            var lines = text.split("\n");
+            if (lines.length < 2) {
+                throw new Error("CSV file appears to be empty.");
+            }
+
+            var header = lines[0].split(",");
+            var typeIdx = header.indexOf("type");
+            var startIdx = header.indexOf("startDate");
+            var valueIdx = header.indexOf("value");
+
+            if (typeIdx === -1 || startIdx === -1 || valueIdx === -1) {
+                // Not a recognised Apple Health export — send as-is and let the server validate
+                return file;
+            }
+
+            // Only keep records from the past 90 days (matches server-side truncation)
+            var cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
+            var hrLines = ["startDate,value,type"];
+            for (var i = 1; i < lines.length; i++) {
+                var line = lines[i];
+                if (!line.trim()) continue;
+                // Fast pre-check before splitting
+                if (line.indexOf("HKQuantityTypeIdentifierHeartRate") === -1) continue;
+                var cols = line.split(",");
+                if (!cols[typeIdx] || cols[typeIdx].trim() !== "HKQuantityTypeIdentifierHeartRate") continue;
+                // Date filter
+                var ts = Date.parse(cols[startIdx]);
+                if (!isNaN(ts) && ts < cutoff) continue;
+                hrLines.push(cols[startIdx] + "," + cols[valueIdx] + ",HKQuantityTypeIdentifierHeartRate");
+            }
+
+            if (hrLines.length <= 1) {
+                throw new Error("No heart rate records found in the past 90 days of the CSV file.");
+            }
+
+            return new File([hrLines.join("\n")], "apple_health_hr.csv", { type: "text/csv" });
+        }
+
+        /**
          * For large XML files (Apple Health export.xml can be 1-2 GB),
          * extract heart rate records client-side using FileReader + slice,
          * which works on all browsers including mobile Safari.
@@ -1665,6 +1717,10 @@
 
                 if (name.endsWith(".xml")) {
                     uploadFile = await extractHrFromXml(file);
+                    btnText.textContent = "Analysing\u2026";
+                } else if (name.endsWith(".csv")) {
+                    btnText.textContent = "Filtering CSV\u2026";
+                    uploadFile = await extractHrFromCsv(file);
                     btnText.textContent = "Analysing\u2026";
                 }
 
