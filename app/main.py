@@ -7,10 +7,13 @@ that accepts an Apple Health CSV upload and returns a risk tier result.
 
 import os
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from .pipeline import (
     parse_apple_health_export,
@@ -18,13 +21,26 @@ from .pipeline import (
     process_and_predict,
 )
 
-app = FastAPI(title="BeatCheck", version="1.0.0")
+# ---------------------------------------------------------------------------
+# Rate limiter
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address)
 
-# CORS — allow all origins for demo
+app = FastAPI(title="BeatCheck", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---------------------------------------------------------------------------
+# CORS — driven by environment variable so it can be locked on Render
+# Set ALLOWED_ORIGINS=https://your-app.onrender.com in Render env vars.
+# Falls back to wildcard for local development.
+# ---------------------------------------------------------------------------
+_ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -38,6 +54,10 @@ _PARSERS = {
     ".xml": parse_apple_health_xml,
 }
 
+# Maximum accepted upload size (backstop — client-side XML extraction already
+# sends a small CSV, so real uploads are well under this limit)
+_MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
+
 
 def _error(status_code: int, detail: str) -> JSONResponse:
     """Return a JSON error response with the given status and message."""
@@ -46,8 +66,23 @@ def _error(status_code: int, detail: str) -> JSONResponse:
 
 @app.get("/health")
 async def health_check() -> dict:
-    """Health check endpoint for Render."""
+    """Health check endpoint for Render and UptimeRobot keep-alive."""
     return {"status": "ok"}
+
+
+@app.get("/demo")
+async def demo_result() -> dict:
+    """
+    Pre-baked sample result for live demo and server warm-up.
+    Returns a realistic Intermediate-tier scenario — no file upload required.
+    """
+    return {
+        "pct_flagged": 23.4,
+        "total_windows": 256,
+        "flagged_windows": 60,
+        "risk_tier": "Intermediate",
+        "days_analysed": 67,
+    }
 
 
 @app.api_route("/", methods=["GET", "HEAD"])
@@ -57,7 +92,8 @@ async def serve_index() -> FileResponse:
 
 
 @app.post("/analyse")
-async def analyse(file: UploadFile = File(...)) -> dict | JSONResponse:
+@limiter.limit("10/minute")
+async def analyse(request: Request, file: UploadFile = File(...)) -> dict | JSONResponse:
     """Accept Apple Health CSV or XML, run pipeline, return risk tier."""
     filename = (file.filename or "").lower()
 
@@ -67,6 +103,16 @@ async def analyse(file: UploadFile = File(...)) -> dict | JSONResponse:
         return _error(400, f"Failed to read uploaded file: {e}")
 
     print(f"[BeatCheck] Received {len(file_bytes):,} bytes from '{file.filename}'")
+
+    # Reject oversized uploads before parsing
+    if len(file_bytes) > _MAX_UPLOAD_BYTES:
+        return _error(
+            400,
+            f"File too large ({len(file_bytes) // (1024 * 1024)} MB). "
+            "Please upload the extracted CSV, not the full XML export. "
+            "The XML is pre-processed in your browser — only a small CSV "
+            "is sent to the server.",
+        )
 
     # Select parser by file extension
     parser = next(

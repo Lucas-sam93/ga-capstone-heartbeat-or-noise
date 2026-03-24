@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1019,6 +1018,120 @@
             .btn-analyse { width: 100%; }
             .ecg-line { height: 40px; }
             .pulse-ring-container { width: 280px; height: 280px; }
+            .stats-row {
+                flex-wrap: wrap;
+                gap: 0.375rem;
+                text-align: center;
+                justify-content: center;
+            }
+        }
+
+        /* ---- Analyse another / demo buttons ---- */
+        .btn-analyse-another {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            font-family: var(--font-body);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            padding: 0.25rem 0;
+        }
+        .btn-analyse-another:hover {
+            color: var(--color-primary-hover);
+        }
+
+        .btn-demo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: none;
+            border: 1.5px solid var(--color-border);
+            color: var(--color-text-secondary);
+            font-family: var(--font-body);
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: border-color var(--transition-fast), color var(--transition-fast);
+        }
+        .btn-demo:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .btn-demo:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* ---- How BeatCheck works ---- */
+        .how-it-works {
+            margin-bottom: 2rem;
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            overflow: hidden;
+        }
+        @media (prefers-color-scheme: dark) {
+            .how-it-works { background: rgba(19, 28, 46, 0.6); }
+        }
+        .how-it-works-summary {
+            padding: 1rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+        .how-it-works-summary::-webkit-details-marker { display: none; }
+        .how-it-works-summary::after {
+            content: "+";
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: var(--color-text-muted);
+        }
+        details[open] .how-it-works-summary::after { content: "\2212"; }
+        .how-it-works-body {
+            padding: 0 1.5rem 1.5rem;
+            border-top: 1px solid var(--color-border-light);
+        }
+        .how-it-works-stats {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.25rem 0 1rem;
+            flex-wrap: wrap;
+        }
+        .hiw-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+        .hiw-stat-num {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            line-height: 1;
+        }
+        .hiw-stat-label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+        .hiw-text {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            line-height: 1.65;
+            margin-bottom: 0.75rem;
+        }
+        .hiw-context {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            line-height: 1.65;
+            border-top: 1px solid var(--color-border-light);
+            padding-top: 0.875rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
@@ -1150,12 +1263,59 @@
                     <span id="file-name-text"></span>
                 </div>
             </div>
+            <!-- How BeatCheck works (collapsible) -->
+            <details class="how-it-works">
+                <summary class="how-it-works-summary">How BeatCheck works</summary>
+                <div class="how-it-works-body">
+                    <div class="how-it-works-stats">
+                        <div class="hiw-stat">
+                            <span class="hiw-stat-num">8,187</span>
+                            <span class="hiw-stat-label">clinical ECG recordings</span>
+                        </div>
+                        <div class="hiw-stat">
+                            <span class="hiw-stat-num">84%</span>
+                            <span class="hiw-stat-label">sensitivity</span>
+                        </div>
+                        <div class="hiw-stat">
+                            <span class="hiw-stat-num">0.91</span>
+                            <span class="hiw-stat-label">AUROC</span>
+                        </div>
+                    </div>
+                    <p class="hiw-text">
+                        BeatCheck was trained on the <strong>Physionet 2017 AF Classification Challenge</strong> —
+                        a clinical dataset used globally for cardiac rhythm research. It extracts
+                        8 heart rate variability features from your data and uses a
+                        <strong>Support Vector Machine</strong> to score each 30-minute window of
+                        activity against patterns seen in clinical ECG recordings.
+                    </p>
+                    <p class="hiw-text">
+                        Validated on 35 subjects with simultaneous wearable PPG and clinical ECG labels,
+                        the model retains discriminative ability across sensing modalities (AUROC&nbsp;0.86).
+                        This is a research prototype &mdash; not a certified medical device.
+                    </p>
+                    <p class="hiw-context">
+                        Cardiovascular disease accounts for <strong>30.5% of all deaths in Singapore</strong>.
+                        Yet 49% of residents did not have a health checkup in the past 12&nbsp;months.
+                        BeatCheck explores whether the wearables already on people&rsquo;s wrists can
+                        help close that screening gap.
+                    </p>
+                </div>
+            </details>
+
             <button class="btn-analyse" id="btn-analyse" disabled aria-label="Analyse heart rate data">
                 <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 <span id="btn-text">Analyse</span>
             </button>
+            <div style="text-align:center; margin-top: 0.75rem;">
+                <button class="btn-demo" id="btn-demo" aria-label="Try with sample data">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Try with sample data
+                </button>
+            </div>
             <div class="error-box" id="error-box"></div>
         </div>
 
@@ -1205,6 +1365,11 @@
                     This result is not a diagnosis. BeatCheck is a research
                     prototype &mdash; not a certified medical device.
                 </p>
+                <div style="text-align:center; margin-top: 1rem;">
+                    <button class="btn-analyse-another" id="btn-analyse-another">
+                        Analyse a different file
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1231,6 +1396,8 @@
         var fileInput = document.getElementById("file-input");
         var btnAnalyse = document.getElementById("btn-analyse");
         var btnText = document.getElementById("btn-text");
+        var btnDemo = document.getElementById("btn-demo");
+        var btnAnalyseAnother = document.getElementById("btn-analyse-another");
         var errorBox = document.getElementById("error-box");
         var resultsSection = document.getElementById("results-section");
         var resultsCard = document.getElementById("results-card");
@@ -1264,9 +1431,16 @@
 
         fileInput.addEventListener("change", function () {
             if (fileInput.files.length > 0) {
+                var f = fileInput.files[0];
+                var sizeStr = f.size > 1024 * 1024
+                    ? (f.size / (1024 * 1024)).toFixed(1) + " MB"
+                    : (f.size / 1024).toFixed(0) + " KB";
                 dropZone.classList.add("has-file");
-                fileNameText.textContent = fileInput.files[0].name;
+                fileNameText.textContent = f.name + " \u2014 " + sizeStr;
                 fileName.classList.add("visible");
+                // Clear any stale result or error from a previous upload
+                resultsSection.style.display = "none";
+                errorBox.style.display = "none";
             } else {
                 dropZone.classList.remove("has-file");
                 fileName.classList.remove("visible");
@@ -1285,6 +1459,17 @@
         dropZone.addEventListener("drop", function (e) {
             e.preventDefault(); // prevent browser navigating to the dropped file
             dropZone.classList.remove("drag-over");
+        });
+
+        // "Analyse a different file" — reset the form and scroll back up
+        btnAnalyseAnother.addEventListener("click", function () {
+            resultsSection.style.display = "none";
+            errorBox.style.display = "none";
+            fileInput.value = "";
+            dropZone.classList.remove("has-file");
+            fileName.classList.remove("visible");
+            updateButtonState();
+            window.scrollTo({ top: 0, behavior: "smooth" });
         });
 
         var explanations = {
@@ -1338,7 +1523,6 @@
 
         // Animate number counting up
         function animateCount(el, target, suffix, duration) {
-            var start = 0;
             var startTime = null;
             suffix = suffix || "";
 
@@ -1355,7 +1539,6 @@
                 }
             }
 
-            // Respect reduced motion
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
                 el.textContent = target + suffix;
             } else {
@@ -1368,12 +1551,37 @@
             var circumference = 2 * Math.PI * 68; // r=68
             var offset = circumference - (pct / 100) * circumference;
             progressRingFill.style.stroke = color;
-            // Trigger reflow for animation
             progressRingFill.style.transition = "none";
             progressRingFill.style.strokeDashoffset = circumference;
-            progressRingFill.getBoundingClientRect();
+            progressRingFill.getBoundingClientRect(); // trigger reflow
             progressRingFill.style.transition = "stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)";
             progressRingFill.style.strokeDashoffset = offset;
+        }
+
+        // Shared result renderer — used by both the upload handler and the demo button
+        function renderResult(data) {
+            var validTiers = ["Low", "Intermediate", "High"];
+            if (!data.risk_tier || validTiers.indexOf(data.risk_tier) === -1 ||
+                data.pct_flagged === undefined || data.total_windows === undefined ||
+                data.flagged_windows === undefined || data.days_analysed === undefined) {
+                errorBox.textContent = "Unexpected response from server \u2014 please try again.";
+                errorBox.style.display = "block";
+                return;
+            }
+
+            tierBadge.className = "tier-badge " + tierClasses[data.risk_tier];
+            tierValue.textContent = data.risk_tier;
+            tierIcon.innerHTML = tierIcons[data.risk_tier];
+            resultsCard.className = "results-card " + tierCardClasses[data.risk_tier];
+            setProgressRing(data.pct_flagged, tierAccentColors[data.risk_tier]);
+            animateCount(progressPct, data.pct_flagged, "%", 1000);
+            explanation.textContent = explanations[data.risk_tier](data.days_analysed);
+            statsText.textContent =
+                data.flagged_windows + " of " + data.total_windows +
+                " windows flagged (" + data.pct_flagged + "%) across " +
+                data.days_analysed + " days";
+            resultsSection.style.display = "block";
+            resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
         }
 
         /**
@@ -1396,7 +1604,6 @@
                 var pct = Math.round((offset / fileSize) * 100);
                 btnText.textContent = "Reading XML\u2026 " + pct + "%";
 
-                // Read next chunk via FileReader (universally supported)
                 var chunk = await new Promise(function (resolve, reject) {
                     var fr = new FileReader();
                     fr.onload = function (e) { resolve(e.target.result); };
@@ -1413,13 +1620,10 @@
                     var tag = match[0];
                     var sm = reStart.exec(tag);
                     var vm = reValue.exec(tag);
-                    if (sm && vm) {
-                        records.push(sm[1] + "," + vm[1]);
-                    }
+                    if (sm && vm) { records.push(sm[1] + "," + vm[1]); }
                     lastIndex = re.lastIndex;
                 }
 
-                // Keep unprocessed tail (may contain a partial tag)
                 var tailStart = chunk.lastIndexOf("<Record", lastIndex);
                 if (tailStart > 0 && tailStart > lastIndex) {
                     leftover = chunk.slice(tailStart);
@@ -1428,9 +1632,7 @@
                 }
 
                 offset += CHUNK;
-
-                // Yield to browser so the UI stays responsive
-                await new Promise(function (r) { setTimeout(r, 0); });
+                await new Promise(function (r) { setTimeout(r, 0); }); // yield to browser
             }
 
             if (records.length === 0) {
@@ -1445,6 +1647,7 @@
             return new File([csv], "apple_health_hr.csv", { type: "text/csv" });
         }
 
+        // Main upload handler
         btnAnalyse.addEventListener("click", async function () {
             errorBox.style.display = "none";
             resultsSection.style.display = "none";
@@ -1460,7 +1663,6 @@
                 var uploadFile = file;
                 var name = file.name.toLowerCase();
 
-                // Client-side extraction for large XML files
                 if (name.endsWith(".xml")) {
                     uploadFile = await extractHrFromXml(file);
                     btnText.textContent = "Analysing\u2026";
@@ -1481,7 +1683,7 @@
 
                 var contentType = response.headers.get("content-type") || "";
                 if (!contentType.includes("application/json")) {
-                    errorBox.textContent = "Server error — the server may be starting up. Please try again in 30 seconds.";
+                    errorBox.textContent = "Server error \u2014 the server may be starting up. Please try again in 30 seconds.";
                     errorBox.style.display = "block";
                     return;
                 }
@@ -1494,35 +1696,7 @@
                     return;
                 }
 
-                // Guard against malformed or unexpected server response
-                var validTiers = ["Low", "Intermediate", "High"];
-                if (!data.risk_tier || validTiers.indexOf(data.risk_tier) === -1 ||
-                    data.pct_flagged === undefined || data.total_windows === undefined ||
-                    data.flagged_windows === undefined || data.days_analysed === undefined) {
-                    errorBox.textContent = "Unexpected response from server — please try again.";
-                    errorBox.style.display = "block";
-                    return;
-                }
-
-                // Update tier badge
-                tierBadge.className = "tier-badge " + tierClasses[data.risk_tier];
-                tierValue.textContent = data.risk_tier;
-                tierIcon.innerHTML = tierIcons[data.risk_tier];
-
-                // Update results card accent bar
-                resultsCard.className = "results-card " + tierCardClasses[data.risk_tier];
-
-                // Update circular progress ring
-                setProgressRing(data.pct_flagged, tierAccentColors[data.risk_tier]);
-                animateCount(progressPct, data.pct_flagged, "%", 1000);
-
-                // Update explanation and stats
-                explanation.textContent = explanations[data.risk_tier](data.days_analysed);
-                statsText.textContent =
-                    data.flagged_windows + " of " + data.total_windows +
-                    " windows flagged (" + data.pct_flagged + "%) across " +
-                    data.days_analysed + " days";
-                resultsSection.style.display = "block";
+                renderResult(data);
 
             } catch (err) {
                 if (err.name === "AbortError") {
@@ -1535,6 +1709,32 @@
                 btnText.textContent = "Analyse";
                 btnAnalyse.classList.remove("loading");
                 updateButtonState();
+            }
+        });
+
+        // Demo button — hits /demo endpoint, no file upload required
+        btnDemo.addEventListener("click", async function () {
+            errorBox.style.display = "none";
+            resultsSection.style.display = "none";
+            btnDemo.disabled = true;
+            btnDemo.textContent = "Loading\u2026";
+
+            try {
+                var response = await fetch("/demo");
+                var contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("Server may be starting up \u2014 please try again in 30 seconds.");
+                }
+                var data = await response.json();
+                renderResult(data);
+            } catch (err) {
+                errorBox.textContent = err.message || "Demo unavailable \u2014 please try again.";
+                errorBox.style.display = "block";
+            } finally {
+                btnDemo.disabled = false;
+                btnDemo.innerHTML =
+                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>' +
+                    ' Try with sample data';
             }
         });
     </script>
