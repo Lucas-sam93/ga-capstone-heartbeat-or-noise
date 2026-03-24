@@ -91,7 +91,7 @@ async def serve_index() -> FileResponse:
     return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
 
 
-@app.post("/analyse")
+@app.post("/analyse", response_model=None)
 @limiter.limit("10/minute")
 async def analyse(request: Request, file: UploadFile = File(...)) -> dict | JSONResponse:
     """Accept Apple Health CSV or XML, run pipeline, return risk tier."""
