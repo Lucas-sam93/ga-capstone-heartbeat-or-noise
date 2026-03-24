@@ -11,6 +11,7 @@ Provides three public functions:
 import io
 import os
 import re
+import sys
 import warnings
 import xml.etree.ElementTree as ET
 import zipfile
@@ -18,25 +19,35 @@ import zipfile
 import joblib
 import numpy as np
 import pandas as pd
-from scipy.stats import skew, kurtosis
+
+# Add project root to path so src imports work
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from src.constants import FEATURE_COLS
+from src.utils import compute_rr_features
 
 # ---------------------------------------------------------------------------
 # Load model artefacts at import time
 # ---------------------------------------------------------------------------
 _MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
-_scaler = joblib.load(os.path.join(_MODEL_DIR, "scaler.joblib"))
-_model = joblib.load(os.path.join(_MODEL_DIR, "selected_model.joblib"))
+
+try:
+    _scaler = joblib.load(os.path.join(_MODEL_DIR, "scaler.joblib"))
+    _model = joblib.load(os.path.join(_MODEL_DIR, "selected_model.joblib"))
+except FileNotFoundError as e:
+    raise FileNotFoundError(
+        f"Model files not found in {_MODEL_DIR}. "
+        f"Copy scaler.joblib and selected_model.joblib from "
+        f"outputs/models/ before starting the app."
+    ) from e
 
 # Suppress sklearn warning about missing feature names (cosmetic only)
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 
-# Feature column order — must match training exactly
-_FEATURE_COLS = [
-    "rmssd", "sdnn", "mean_rr", "pnn50",
-    "hr_mean", "hr_std", "rr_skewness", "rr_kurtosis",
-]
-
 # Locked threshold — LOOCV mean from sensitivity-targeted LOOCV
+# (Cell 10, notebook 05_mimic_perform_af_validation.ipynb)
 _THRESHOLD = 0.8368
 
 
@@ -177,33 +188,18 @@ def process_and_predict(df: pd.DataFrame) -> dict:
         hr = values[i_start:i_end]
         rr = 60000.0 / hr  # RR intervals in ms
 
-        rr_diff = np.diff(rr)
+        features_list.append(compute_rr_features(rr))
 
-        features_list.append({
-            "hr_mean": np.mean(hr),
-            "hr_std": np.std(hr, ddof=1) if len(hr) > 1 else 0.0,
-            "mean_rr": np.mean(rr),
-            "rmssd": np.sqrt(np.mean(rr_diff ** 2)) if len(rr_diff) > 0 else 0.0,
-            "sdnn": np.std(rr, ddof=1) if len(rr) > 1 else 0.0,
-            "pnn50": (
-                np.sum(np.abs(rr_diff) > 50) / len(rr_diff)
-                if len(rr_diff) > 0 else 0.0
-            ),
-            "rr_skewness": skew(rr) if len(rr) > 2 else 0.0,
-            "rr_kurtosis": kurtosis(rr) if len(rr) > 2 else 0.0,
-        })
-
-    # --- d. Build DataFrame and drop NaN windows ---
+    # --- d. Build DataFrame, drop NaN, and validate ---
     if not features_list:
         raise ValueError(
             "Insufficient data — fewer than 5 valid windows found "
             "in the past 90 days."
         )
 
-    feat_df = pd.DataFrame(features_list)[_FEATURE_COLS]
+    feat_df = pd.DataFrame(features_list)[FEATURE_COLS]
     feat_df = feat_df.dropna()
 
-    # --- e. Minimum window check ---
     if len(feat_df) < 5:
         raise ValueError(
             "Insufficient data — fewer than 5 valid windows found "

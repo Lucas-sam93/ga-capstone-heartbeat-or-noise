@@ -1,9 +1,3 @@
-import os
-import numpy as np
-import pandas as pd
-import neurokit2 as nk
-from scipy import stats
-
 """
 mimic_perform_af_features.py
 ============================
@@ -21,19 +15,21 @@ Locked feature set (frequency domain excluded):
 Called from: 05_mimic_perform_af_validation.ipynb
 """
 
-# ── Constants ────────────────────────────────────────────────────
+import os
 
-# Physiological plausibility bounds for RR intervals (ms).
-# Matches src/features.py exactly.
-RR_MIN_MS = 300    # 200 bpm upper limit
-RR_MAX_MS = 2000   # 30 bpm lower limit
+import numpy as np
+import pandas as pd
+import neurokit2 as nk
+
+from .constants import SEPARATOR
+from .utils import filter_rr_intervals, compute_rr_features
 
 # Quality tier thresholds based on detected peak count.
 PEAK_THRESHOLD_GREEN = 300
 PEAK_THRESHOLD_AMBER = 100
 
 
-def load_mimic_perform_af_records(af_dir, non_af_dir):
+def load_mimic_perform_af_records(af_dir: str, non_af_dir: str) -> list[dict]:
     """
     Load all MIMIC PERform AF CSV files from AF and non-AF directories.
 
@@ -90,7 +86,7 @@ def load_mimic_perform_af_records(af_dir, non_af_dir):
     return records
 
 
-def clean_ppg_signal(ppg_series):
+def clean_ppg_signal(ppg_series: pd.Series) -> pd.Series:
     """
     Clean a PPG signal by interpolating null values.
 
@@ -113,7 +109,9 @@ def clean_ppg_signal(ppg_series):
     return cleaned
 
 
-def extract_rr_intervals(ppg_signal, sampling_rate=125):
+def extract_rr_intervals(
+        ppg_signal: pd.Series | np.ndarray,
+        sampling_rate: int = 125) -> tuple[np.ndarray | None, int, str]:
     """
     Detect PPG peaks and compute RR intervals in milliseconds.
 
@@ -157,10 +155,7 @@ def extract_rr_intervals(ppg_signal, sampling_rate=125):
         rr_ms = (rr_samples / sampling_rate) * 1000.0
 
         # Apply physiological plausibility filtering
-        rr_ms = rr_ms[
-            (rr_ms >= RR_MIN_MS) &
-            (rr_ms <= RR_MAX_MS)
-        ]
+        rr_ms = filter_rr_intervals(rr_ms)
 
         # Assign quality tier
         if peak_count >= PEAK_THRESHOLD_GREEN:
@@ -176,14 +171,14 @@ def extract_rr_intervals(ppg_signal, sampling_rate=125):
         return None, 0, 'red'
 
 
-def compute_mimic_features(rr_intervals, subject_id, label,
-                           quality_tier='green'):
+def compute_mimic_features(
+        rr_intervals: np.ndarray, subject_id: str,
+        label: int, quality_tier: str = 'green') -> dict:
     """
     Compute the eight locked HRV features from RR intervals.
 
-    Feature definitions match src/features.py exactly to ensure
-    valid comparison between Layer 1 (clinical ECG) and Layer 2
-    (wearable PPG) results.
+    Delegates to the shared compute_rr_features() to ensure
+    feature definitions match Layer 1 exactly.
 
     Parameters
     ----------
@@ -216,52 +211,16 @@ def compute_mimic_features(rr_intervals, subject_id, label,
             f"(got {0 if rr_intervals is None else len(rr_intervals)})"
         )
 
-    # Successive differences (used by RMSSD and pNN50)
-    successive_diffs = np.diff(rr_intervals)
-
-    # RMSSD — root mean square of successive RR differences
-    rmssd = np.sqrt(np.mean(successive_diffs ** 2))
-
-    # SDNN — standard deviation of all RR intervals
-    sdnn = np.std(rr_intervals, ddof=1)
-
-    # Mean RR — average inter-beat interval in milliseconds
-    mean_rr = np.mean(rr_intervals)
-
-    # pNN50 — proportion of consecutive pairs differing >50ms
-    nn50 = np.sum(np.abs(successive_diffs) > 50)
-    pnn50 = (nn50 / len(successive_diffs)
-             if len(successive_diffs) > 0 else 0.0)
-
-    # HR Mean — average heart rate from mean RR
-    hr_mean = 60000.0 / mean_rr
-
-    # HR Std Dev — variability of instantaneous heart rate
-    hr_series = 60000.0 / rr_intervals
-    hr_std = np.std(hr_series, ddof=1)
-
-    # RR Skewness — asymmetry of RR distribution
-    rr_skewness = stats.skew(rr_intervals)
-
-    # RR Kurtosis — tail weight of RR distribution
-    rr_kurtosis = stats.kurtosis(rr_intervals)
-
-    return {
-        'subject_id':   subject_id,
-        'label':        label,
-        'quality_tier': quality_tier,
-        'rmssd':        round(rmssd, 4),
-        'sdnn':         round(sdnn, 4),
-        'mean_rr':      round(mean_rr, 4),
-        'pnn50':        round(pnn50, 4),
-        'hr_mean':      round(hr_mean, 4),
-        'hr_std':       round(hr_std, 4),
-        'rr_skewness':  round(rr_skewness, 4),
-        'rr_kurtosis':  round(rr_kurtosis, 4)
-    }
+    features = compute_rr_features(rr_intervals)
+    features = {k: round(v, 4) for k, v in features.items()}
+    features['subject_id'] = subject_id
+    features['label'] = label
+    features['quality_tier'] = quality_tier
+    return features
 
 
-def build_mimic_feature_matrix(af_dir, non_af_dir):
+def build_mimic_feature_matrix(
+        af_dir: str, non_af_dir: str) -> tuple[pd.DataFrame, list[str]]:
     """
     Orchestrate full feature extraction pipeline for all 35 subjects.
 
@@ -340,9 +299,9 @@ def build_mimic_feature_matrix(af_dir, non_af_dir):
 
     # Print summary
     total = len(records)
-    print("\n" + "=" * 55)
+    print("\n" + SEPARATOR)
     print("MIMIC PERform AF — FEATURE EXTRACTION COMPLETE")
-    print("=" * 55)
+    print(SEPARATOR)
     print(f"Total subjects attempted:  {total}")
     print(f"  Green (>= 300 peaks):    {green_count}")
     print(f"  Amber (100-299 peaks):   {amber_count}")

@@ -1,7 +1,3 @@
-import pandas as pd
-import numpy as np
-import os
-
 """
 preprocess.py
 =============
@@ -11,6 +7,10 @@ cleaned, validated DataFrames ready for feature engineering.
 
 Called from: 02_feature_engineering.ipynb
 """
+
+import os
+
+import pandas as pd
 
 # Physiological plausibility thresholds
 # Based on published normal ranges for adult humans
@@ -34,7 +34,7 @@ ANCHOR_WINDOWS = {
 }
 
 
-def clean_metric(metric_name, raw_dir, proc_dir):
+def clean_metric(metric_name: str, raw_dir: str, proc_dir: str) -> dict:
     """
     Clean a single Apple Watch metric from raw CSV.
 
@@ -91,9 +91,7 @@ def clean_metric(metric_name, raw_dir, proc_dir):
 
     # ── Step 1: Parse timestamps ─────────────────────────────────
     # Preserve +0800 Singapore timezone — no UTC conversion
-    df['startDate'] = pd.to_datetime(
-        df['startDate'], utc=False
-    )
+    df['startDate'] = pd.to_datetime(df['startDate'])
 
     # ── Step 2: Convert values to numeric ────────────────────────
     df['value'] = pd.to_numeric(df['value'], errors='coerce')
@@ -125,15 +123,16 @@ def clean_metric(metric_name, raw_dir, proc_dir):
         pd.to_datetime(df['date']) - ANCHOR_DATE
     ).dt.days
 
+    # Derive bins and labels from ANCHOR_WINDOWS to avoid duplication
+    period_names = list(ANCHOR_WINDOWS.keys())
+    bins = [ANCHOR_WINDOWS[period_names[0]][0]]  # leftmost edge
+    for name in period_names:
+        bins.append(ANCHOR_WINDOWS[name][1])
+
     df['anchor_period'] = pd.cut(
         df['days_from_anchor'],
-        bins=[-9999, -91, -1, 90, 9999],
-        labels=[
-            'baseline',
-            'pre_anchor',
-            'post_anchor',
-            'follow_up'
-        ]
+        bins=bins,
+        labels=period_names
     )
 
     # ── Step 7: Save cleaned file ─────────────────────────────────
@@ -155,7 +154,7 @@ def clean_metric(metric_name, raw_dir, proc_dir):
     }
 
 
-def run_cleaning_pipeline(raw_dir, proc_dir):
+def run_cleaning_pipeline(raw_dir: str, proc_dir: str) -> list[dict]:
     """
     Run cleaning pipeline across all Apple Watch metrics.
 

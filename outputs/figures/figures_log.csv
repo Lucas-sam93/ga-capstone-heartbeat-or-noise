@@ -1,3 +1,0 @@
-filename,description,notebook,cell_reference,analysis_step,date_produced
-sample_ecg.png,Raw ECG signal plot for Physionet record A00001 — single-lead ECG at 300 Hz showing amplitude over samples,01_data_exploration.ipynb,Cell 2,Phase 1  Data Exploration,1/2/2026
-aw_vs_physionet_distributions.png,8-subplot KDE overlay comparing Apple Watch feature distributions against Physionet training distributions for all 8 locked features,04_layer2_analysis.ipynb,Cell 3,Phase 6  Gap Quantification,1/3/2026
