@@ -1722,6 +1722,10 @@
                     btnText.textContent = "Filtering CSV\u2026";
                     uploadFile = await extractHrFromCsv(file);
                     btnText.textContent = "Analysing\u2026";
+                } else if (name.endsWith(".csv")) {
+                    btnText.textContent = "Filtering CSV\u2026";
+                    uploadFile = await extractHrFromCsv(file);
+                    btnText.textContent = "Analysing\u2026";
                 }
 
                 var formData = new FormData();
