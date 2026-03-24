@@ -1597,18 +1597,28 @@
                 fr.readAsText(file);
             });
 
+            // Strip BOM if present
+            if (text.charCodeAt(0) === 0xFEFF) { text = text.slice(1); }
+
             var lines = text.split("\n");
             if (lines.length < 2) {
                 throw new Error("CSV file appears to be empty.");
             }
 
-            var header = lines[0].split(",");
-            var typeIdx = header.indexOf("type");
-            var startIdx = header.indexOf("startDate");
-            var valueIdx = header.indexOf("value");
+            // Normalise header: strip quotes, trim, lowercase for matching
+            function normalise(s) { return s.replace(/^"|"$/g, "").trim().toLowerCase(); }
+
+            var rawHeader = lines[0].split(",");
+            var typeIdx = -1, startIdx = -1, valueIdx = -1;
+            for (var h = 0; h < rawHeader.length; h++) {
+                var n = normalise(rawHeader[h]);
+                if (n === "type") typeIdx = h;
+                else if (n === "startdate") startIdx = h;
+                else if (n === "value") valueIdx = h;
+            }
 
             if (typeIdx === -1 || startIdx === -1 || valueIdx === -1) {
-                // Not a recognised Apple Health export — send as-is and let the server validate
+                // Column names not recognised — send as-is and let the server validate
                 return file;
             }
 
@@ -1622,11 +1632,14 @@
                 // Fast pre-check before splitting
                 if (line.indexOf("HKQuantityTypeIdentifierHeartRate") === -1) continue;
                 var cols = line.split(",");
-                if (!cols[typeIdx] || cols[typeIdx].trim() !== "HKQuantityTypeIdentifierHeartRate") continue;
+                var typeVal = cols[typeIdx] ? cols[typeIdx].replace(/^"|"$/g, "").trim() : "";
+                if (typeVal !== "HKQuantityTypeIdentifierHeartRate") continue;
                 // Date filter
                 var ts = Date.parse(cols[startIdx]);
                 if (!isNaN(ts) && ts < cutoff) continue;
-                hrLines.push(cols[startIdx] + "," + cols[valueIdx] + ",HKQuantityTypeIdentifierHeartRate");
+                var startVal = cols[startIdx] ? cols[startIdx].replace(/^"|"$/g, "").trim() : "";
+                var numVal = cols[valueIdx] ? cols[valueIdx].replace(/^"|"$/g, "").trim() : "";
+                hrLines.push(startVal + "," + numVal + ",HKQuantityTypeIdentifierHeartRate");
             }
 
             if (hrLines.length <= 1) {
@@ -1717,10 +1730,6 @@
 
                 if (name.endsWith(".xml")) {
                     uploadFile = await extractHrFromXml(file);
-                    btnText.textContent = "Analysing\u2026";
-                } else if (name.endsWith(".csv")) {
-                    btnText.textContent = "Filtering CSV\u2026";
-                    uploadFile = await extractHrFromCsv(file);
                     btnText.textContent = "Analysing\u2026";
                 } else if (name.endsWith(".csv")) {
                     btnText.textContent = "Filtering CSV\u2026";
