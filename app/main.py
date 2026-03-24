@@ -56,7 +56,7 @@ _PARSERS = {
 
 # Maximum accepted upload size (backstop — client-side XML extraction already
 # sends a small CSV, so real uploads are well under this limit)
-_MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
 def _error(status_code: int, detail: str) -> JSONResponse:
@@ -109,9 +109,8 @@ async def analyse(request: Request, file: UploadFile = File(...)) -> dict | JSON
         return _error(
             400,
             f"File too large ({len(file_bytes) // (1024 * 1024)} MB). "
-            "Please upload the extracted CSV, not the full XML export. "
-            "The XML is pre-processed in your browser — only a small CSV "
-            "is sent to the server.",
+            "If uploading a full Apple Health export, use the XML file \u2014 "
+            "it is processed in your browser before upload, sending only a small CSV.",
         )
 
     # Select parser by file extension

@@ -1618,12 +1618,18 @@
             }
 
             if (typeIdx === -1 || startIdx === -1 || valueIdx === -1) {
-                // Column names not recognised — send as-is and let the server validate
-                return file;
+                throw new Error(
+                    "CSV column headers not recognised (expected \u2018type\u2019, " +
+                    "\u2018startDate\u2019, and \u2018value\u2019). " +
+                    "Try exporting as XML from Apple Health instead \u2014 " +
+                    "it is processed in your browser automatically."
+                );
             }
 
             // Only keep records from the past 90 days (matches server-side truncation)
-            var cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+            // Use lexicographic YYYY-MM-DD comparison — robust across browsers and timezones
+            var cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+                .toISOString().substring(0, 10); // "YYYY-MM-DD"
 
             var hrLines = ["startDate,value,type"];
             for (var i = 1; i < lines.length; i++) {
@@ -1634,10 +1640,11 @@
                 var cols = line.split(",");
                 var typeVal = cols[typeIdx] ? cols[typeIdx].replace(/^"|"$/g, "").trim() : "";
                 if (typeVal !== "HKQuantityTypeIdentifierHeartRate") continue;
-                // Date filter
-                var ts = Date.parse(cols[startIdx]);
-                if (!isNaN(ts) && ts < cutoff) continue;
-                var startVal = cols[startIdx] ? cols[startIdx].replace(/^"|"$/g, "").trim() : "";
+                // Date filter — extract YYYY-MM-DD prefix and compare as string
+                var rawDate = (cols[startIdx] || "").replace(/^"|"$/g, "").trim();
+                var rowDate = rawDate.substring(0, 10); // "YYYY-MM-DD"
+                if (rowDate && rowDate < cutoffDate) continue;
+                var startVal = rawDate;
                 var numVal = cols[valueIdx] ? cols[valueIdx].replace(/^"|"$/g, "").trim() : "";
                 hrLines.push(startVal + "," + numVal + ",HKQuantityTypeIdentifierHeartRate");
             }
@@ -1732,6 +1739,13 @@
                     uploadFile = await extractHrFromXml(file);
                     btnText.textContent = "Analysing\u2026";
                 } else if (name.endsWith(".csv")) {
+                    if (file.size > 500 * 1024 * 1024) {
+                        throw new Error(
+                            "This CSV (" + (file.size / (1024 * 1024)).toFixed(0) + " MB) is too large " +
+                            "to process in the browser. Export as XML from Apple Health instead \u2014 " +
+                            "it streams in chunks and handles files of any size."
+                        );
+                    }
                     btnText.textContent = "Filtering CSV\u2026";
                     uploadFile = await extractHrFromCsv(file);
                     btnText.textContent = "Analysing\u2026";
