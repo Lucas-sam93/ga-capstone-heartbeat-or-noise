@@ -1831,6 +1831,21 @@
                             "it streams in chunks and handles files of any size."
                         );
                     }
+                    // Quick pre-flight: sniff first 2 KB for Apple Health markers
+                    var sniff = await new Promise(function (resolve, reject) {
+                        var fr = new FileReader();
+                        fr.onload = function (e) { resolve(e.target.result); };
+                        fr.onerror = function () { reject(new Error("Failed to read CSV file.")); };
+                        fr.readAsText(file.slice(0, 2048));
+                    });
+                    var sniffLower = sniff.toLowerCase();
+                    if (sniffLower.indexOf("type") === -1 || sniffLower.indexOf("startdate") === -1) {
+                        throw new Error(
+                            "This file does not appear to be an Apple Health export " +
+                            "(expected \u2018type\u2019 and \u2018startDate\u2019 columns). " +
+                            "Please upload a CSV or XML file exported from the Apple Health app."
+                        );
+                    }
                     btnText.textContent = "Filtering CSV\u2026";
                     uploadFile = await extractHrFromCsv(file);
                     btnText.textContent = "Analysing\u2026";

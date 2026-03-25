@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
@@ -28,7 +28,15 @@ limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="BeatCheck", version="1.0.0")
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Maximum 10 analyses per minute."},
+    )
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 
 # ---------------------------------------------------------------------------
 # CORS — driven by environment variable so it can be locked on Render
@@ -102,7 +110,8 @@ async def analyse(request: Request, file: UploadFile = File(...)) -> dict | JSON
     except Exception as e:
         return _error(400, f"Failed to read uploaded file: {e}")
 
-    print(f"[BeatCheck] Received {len(file_bytes):,} bytes from '{file.filename}'")
+    # Log file size only — do not log user filenames
+    print(f"[BeatCheck] Received {len(file_bytes):,} bytes")
 
     # Reject oversized uploads before parsing
     if len(file_bytes) > _MAX_UPLOAD_BYTES:
