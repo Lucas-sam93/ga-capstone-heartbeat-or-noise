@@ -1,0 +1,22 @@
+# =============================================
+# Git LFS — Large and binary files
+# =============================================
+
+# Physionet ECG recordings (.mat + .hea)
+data/physionet/*.mat filter=lfs diff=lfs merge=lfs -text
+data/physionet/*.hea filter=lfs diff=lfs merge=lfs -text
+
+# MIMIC PERform AF CSV files
+data/mimic_perform_af/*.csv filter=lfs diff=lfs merge=lfs -text
+
+# Processed data (feature matrices, cleaned CSVs)
+data/processed/*.csv filter=lfs diff=lfs merge=lfs -text
+
+# Trained model artifacts
+outputs/models/*.joblib filter=lfs diff=lfs merge=lfs -text
+
+# App model copies
+app/models/*.joblib filter=lfs diff=lfs merge=lfs -text
+
+# Figure outputs
+outputs/figures/*.png filter=lfs diff=lfs merge=lfs -text

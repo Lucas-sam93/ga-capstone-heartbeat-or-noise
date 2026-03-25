@@ -1,23 +1,15 @@
 # =============================================
-# DATA — Large files, personal data, generated outputs
+# PERSONAL MEDICAL DATA — Never commit
 # =============================================
 
-# Physionet ECG files (large, sourced directly from Physionet)
-data/physionet/
-
-# Personal Apple Watch health data — MUST NEVER BE COMMITTED
+# Personal Apple Watch health data
 data/apple_watch/
 
-# Generated/processed outputs
-data/processed/
-
-# Catch-all for CSV files in data subdirectories
-data/**/*.csv
-
-# =============================================
-# MODELS — Saved model files
-# =============================================
-outputs/models/
+# Clinical ECG report
+data/ECG Report.pdf
+data/ecg_report_decrypted.pdf
+data/ecg_page_1.png
+data/ecg_page_2.png
 
 # =============================================
 # PYTHON — Cache and compiled files
@@ -37,14 +29,6 @@ venv/
 env/
 .env/
 .venv/
-
-# =============================================
-# PERSONAL MEDICAL DATA — Never commit
-# =============================================
-data/ECG Report.pdf
-data/ecg_report_decrypted.pdf
-data/ecg_page_1.png
-data/ecg_page_2.png
 
 # =============================================
 # GENERATED OUTPUTS — Office files
