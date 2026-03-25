@@ -1753,10 +1753,14 @@
             var reStart = /startDate="([^"]+)"/;
             var reValue = /\bvalue="([^"]+)"/;
 
-            var CHUNK = 1024 * 1024; // 1 MB per chunk
+            var CHUNK = 8 * 1024 * 1024; // 8 MB per chunk
             var offset = 0;
             var fileSize = file.size;
             var leftover = "";
+
+            // Only keep records from the past 90 days (matches server-side truncation)
+            var cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+                .toISOString().substring(0, 10);
 
             while (offset < fileSize) {
                 var pct = Math.round((offset / fileSize) * 100);
@@ -1778,7 +1782,11 @@
                     var tag = match[0];
                     var sm = reStart.exec(tag);
                     var vm = reValue.exec(tag);
-                    if (sm && vm) { records.push(sm[1] + "," + vm[1]); }
+                    if (sm && vm) {
+                        var rowDate = sm[1].substring(0, 10);
+                        if (rowDate < cutoffDate) continue;
+                        records.push(sm[1] + "," + vm[1]);
+                    }
                     lastIndex = re.lastIndex;
                 }
 
@@ -1794,7 +1802,7 @@
             }
 
             if (records.length === 0) {
-                throw new Error("No heart rate records found in the XML file.");
+                throw new Error("No heart rate records found in the past 90 days of the XML file.");
             }
 
             var csv = "startDate,value,type\n" +
