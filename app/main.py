@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
+from starlette.middleware.gzip import GZipMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
@@ -52,9 +53,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files
+# GZip compression — ~80% smaller HTML responses
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+# ---------------------------------------------------------------------------
+# Static files with cache headers
+# ---------------------------------------------------------------------------
+class _CachedStaticFiles(StaticFiles):
+    """StaticFiles subclass that adds Cache-Control headers."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if path.endswith((".css", ".js", ".png", ".svg", ".ico")):
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+
 _STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+app.mount("/static", _CachedStaticFiles(directory=_STATIC_DIR), name="static")
 
 # File extension to parser mapping
 _PARSERS = {
