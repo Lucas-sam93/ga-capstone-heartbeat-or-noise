@@ -1758,11 +1758,6 @@
             var fileSize = file.size;
             var leftover = "";
 
-            // Pre-filter to roughly the past 120 days — generous buffer so the
-            // server-side 90-day filter (anchored to max_date, not now) stays authoritative
-            var cutoffDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000)
-                .toISOString().substring(0, 10);
-
             while (offset < fileSize) {
                 var pct = Math.round((offset / fileSize) * 100);
                 btnText.textContent = "Reading XML\u2026 " + pct + "%";
@@ -1783,11 +1778,7 @@
                     var tag = match[0];
                     var sm = reStart.exec(tag);
                     var vm = reValue.exec(tag);
-                    if (sm && vm) {
-                        var rowDate = sm[1].substring(0, 10);
-                        if (rowDate < cutoffDate) continue;
-                        records.push(sm[1] + "," + vm[1]);
-                    }
+                    if (sm && vm) { records.push(sm[1] + "," + vm[1]); }
                     lastIndex = re.lastIndex;
                 }
 
@@ -1803,11 +1794,32 @@
             }
 
             if (records.length === 0) {
+                throw new Error("No heart rate records found in the XML file.");
+            }
+
+            // Filter to 90 days from max_date (matches server-side logic exactly)
+            // Each record is "startDate,value" — date is the first 10 chars (YYYY-MM-DD)
+            var maxDate = "";
+            for (var m = 0; m < records.length; m++) {
+                var d = records[m].substring(0, 10);
+                if (d > maxDate) maxDate = d;
+            }
+            var maxMs = new Date(maxDate + "T00:00:00").getTime();
+            var cutoffDate = new Date(maxMs - 90 * 24 * 60 * 60 * 1000)
+                .toISOString().substring(0, 10);
+            var filtered = [];
+            for (var f = 0; f < records.length; f++) {
+                if (records[f].substring(0, 10) >= cutoffDate) {
+                    filtered.push(records[f]);
+                }
+            }
+
+            if (filtered.length === 0) {
                 throw new Error("No heart rate records found in the past 90 days of the XML file.");
             }
 
             var csv = "startDate,value,type\n" +
-                records.map(function (r) {
+                filtered.map(function (r) {
                     return r + ",HKQuantityTypeIdentifierHeartRate";
                 }).join("\n");
 
