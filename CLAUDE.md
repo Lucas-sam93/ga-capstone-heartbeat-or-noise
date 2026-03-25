@@ -17,7 +17,7 @@ Status: Layer 1 complete. Layer 2 Apple Watch analysis complete (null result). L
 | Trained model | outputs/models/selected_model.joblib |
 | Scaler | outputs/models/scaler.joblib |
 | Environment | conda activate cvd_project |
-| Next steps | Write final narrative → GitHub |
+| Next steps | Update Word document with final narrative → GitHub |
 
 ---
 
