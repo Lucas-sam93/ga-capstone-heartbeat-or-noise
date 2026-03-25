@@ -1758,8 +1758,9 @@
             var fileSize = file.size;
             var leftover = "";
 
-            // Only keep records from the past 90 days (matches server-side truncation)
-            var cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+            // Pre-filter to roughly the past 120 days — generous buffer so the
+            // server-side 90-day filter (anchored to max_date, not now) stays authoritative
+            var cutoffDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000)
                 .toISOString().substring(0, 10);
 
             while (offset < fileSize) {
