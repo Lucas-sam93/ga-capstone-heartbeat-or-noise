@@ -1,0 +1,94 @@
+{
+  "validation_reports": [
+    {
+      "name": "Logistic Regression",
+      "threshold": 0.41,
+      "sensitivity": 0.8032,
+      "specificity": 0.8452,
+      "auroc": 0.881,
+      "f1_abnormal": 0.7833,
+      "meets_criterion": true,
+      "confusion_matrix": {
+        "tp": 253,
+        "tn": 426,
+        "fp": 78,
+        "fn": 62
+      },
+      "af_sensitivity": 0.9535,
+      "failure_mode": null
+    },
+    {
+      "name": "Random Forest",
+      "threshold": 0.37,
+      "sensitivity": 0.8,
+      "specificity": 0.8671,
+      "auroc": 0.9025,
+      "f1_abnormal": 0.795,
+      "meets_criterion": true,
+      "confusion_matrix": {
+        "tp": 252,
+        "tn": 437,
+        "fp": 67,
+        "fn": 63
+      },
+      "af_sensitivity": 0.9884,
+      "failure_mode": null
+    },
+    {
+      "name": "XGBoost",
+      "threshold": 0.34,
+      "sensitivity": 0.8,
+      "specificity": 0.8472,
+      "auroc": 0.8874,
+      "f1_abnormal": 0.7826,
+      "meets_criterion": true,
+      "confusion_matrix": {
+        "tp": 252,
+        "tn": 427,
+        "fp": 77,
+        "fn": 63
+      },
+      "af_sensitivity": 0.9535,
+      "failure_mode": null
+    },
+    {
+      "name": "SVM",
+      "threshold": 0.34,
+      "sensitivity": 0.8,
+      "specificity": 0.881,
+      "auroc": 0.8981,
+      "f1_abnormal": 0.8038,
+      "meets_criterion": true,
+      "confusion_matrix": {
+        "tp": 252,
+        "tn": 444,
+        "fp": 60,
+        "fn": 63
+      },
+      "af_sensitivity": 0.9884,
+      "failure_mode": null
+    }
+  ],
+  "selection": {
+    "selected_name": "SVM",
+    "reason": "SVM selected. Met sensitivity floor (80.0%) with highest specificity among survivors (88.1%).",
+    "eliminated": []
+  },
+  "test_report": {
+    "name": "SVM",
+    "threshold": 0.34,
+    "sensitivity": 0.8439,
+    "specificity": 0.8733,
+    "auroc": 0.908,
+    "f1_abnormal": 0.8243,
+    "meets_criterion": true,
+    "confusion_matrix": {
+      "tp": 265,
+      "tn": 441,
+      "fp": 64,
+      "fn": 49
+    },
+    "af_sensitivity": 0.988,
+    "threshold_source": "validation_set_fixed"
+  }
+}

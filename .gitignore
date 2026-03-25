@@ -1,4 +1,31 @@
 # =============================================
+# RAW DATA — Large files / restricted access
+# =============================================
+
+# PhysioNet 2017 AF Challenge — binary ECG recordings (too large for GitHub)
+data/physionet/*.mat
+data/physionet/*.hea
+
+# MIMIC PERform AF — restricted data use agreement (no redistribution)
+data/mimic_perform_af/mimic_perform_af_csv/
+data/mimic_perform_af/mimic_perform_non_af_csv/
+
+# Apple Watch processed exports — personal data
+data/processed/heart_rate_clean.csv
+data/processed/hrv_clean.csv
+data/processed/apple_watch_features.csv
+data/processed/respiratory_rate_clean.csv
+data/processed/resting_hr_clean.csv
+data/processed/walking_hr_clean.csv
+
+# =============================================
+# MODELS — Large binary artifacts
+# =============================================
+
+# Random forest too large for GitHub (26MB); not the selected model
+outputs/models/random_forest.joblib
+
+# =============================================
 # PERSONAL MEDICAL DATA — Never commit
 # =============================================
 
