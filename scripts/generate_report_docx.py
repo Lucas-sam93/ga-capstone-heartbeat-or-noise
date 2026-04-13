@@ -128,7 +128,7 @@ def add_page_footer(doc):
     run._r.append(fldChar_begin)
     run._r.append(instrText)
     run._r.append(fldChar_end)
-    run2 = footer_para.add_run(" | Heartbeat or Noise? \u2014 Lucas Sam \u2014 March 2026")
+    run2 = footer_para.add_run(" | Heart on Your Wrist \u2014 Lucas Sam \u2014 March 2026")
     set_run_font(run2, size=9)
 
 
@@ -153,7 +153,7 @@ def build_document():
 
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title.add_run("Heartbeat or Noise?")
+    run = title.add_run("Heart on Your Wrist")
     set_run_font(run, size=28, bold=True, color=HEADING_COLOR)
 
     subtitle = doc.add_paragraph()

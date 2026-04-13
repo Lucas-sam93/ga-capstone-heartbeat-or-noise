@@ -46,7 +46,7 @@ Your role is Senior Data Science Mentor. You are not a code executor. You are a 
 
 ## Project Overview
 
-**Project Title:** Heartbeat or Noise? Evaluating Consumer Wearables as Cardiac Screening Proxies Using Machine Learning
+**Project Title:** Heart on Your Wrist: Evaluating Consumer Wearables as Cardiac Screening Proxies Using Machine Learning
 
 **Research Question:** Can machine learning models trained on clinical ECG data generalise to consumer wearable signals to detect cardiac rhythm anomalies, and are consumer wearables feasible as proxy cardiac screening tools for the general population?
 

@@ -1,4 +1,4 @@
-# Heartbeat or Noise?
+# Heart on Your Wrist
 ### Evaluating Consumer Wearables as Cardiac Screening Proxies Using Machine Learning
 
 **Author:** Lucas Sam
@@ -139,7 +139,7 @@ Not a medical device. Hard disclaimer required before upload.
 ## Project Structure
 
 ```
-ga-capstone-heartbeat-or-noise/
+ga-capstone-heart-on-your-wrist/
 ├── app/                        # BeatCheck web app
 │   ├── main.py                 # FastAPI backend
 │   ├── pipeline.py             # ML inference pipeline
@@ -179,7 +179,7 @@ ga-capstone-heartbeat-or-noise/
 ## Environment Setup
 
 ```bash
-git clone https://github.com/Lucas-sam93/ga-capstone-heartbeat-or-noise.git
+git clone https://github.com/LucasSam/ga-capstone-heart-on-your-wrist.git
 conda create -n cvd_project python=3.13
 conda activate cvd_project
 conda install numpy pandas scipy scikit-learn matplotlib seaborn jupyter ipykernel -y

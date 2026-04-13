@@ -77,7 +77,7 @@ def build_document():
         doc.add_paragraph()
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title.add_run("Heartbeat or Noise?")
+    run = title.add_run("Heart on Your Wrist")
     set_run_font(run, size=28, bold=True, color=HEADING_COLOR)
 
     subtitle = doc.add_paragraph()

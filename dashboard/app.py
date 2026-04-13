@@ -1,7 +1,7 @@
 """
 BeatCheck Analytics \u2014 Streamlit Dashboard
 
-Four-tab analytics dashboard for the Heartbeat or Noise? capstone project.
+Four-tab analytics dashboard for the Heart on Your Wrist capstone project.
 Tabs:
   1. Model Performance  \u2014 SVM test metrics, ROC curve, confusion matrix, threshold slider
   2. Cross-Model Comparison \u2014 validation metrics, grouped bar chart, overfitting table
@@ -178,7 +178,7 @@ def get_test_probabilities() -> tuple:
 def render_sidebar():
     with st.sidebar:
         st.title("BeatCheck Analytics")
-        st.caption("Heartbeat or Noise? \u2014 Capstone Project")
+        st.caption("Heart on Your Wrist \u2014 Capstone Project")
         st.markdown("---")
         st.markdown(
             "Evaluating consumer wearables as cardiac screening proxies "
