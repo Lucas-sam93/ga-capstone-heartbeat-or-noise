@@ -37,10 +37,12 @@ from sklearn.model_selection import train_test_split
 # ---------------------------------------------------------------------------
 _DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_DASHBOARD_DIR)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
+_APP_DIR = os.path.join(_PROJECT_ROOT, "app")
+for _p in (_PROJECT_ROOT, _APP_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from app.pipeline import (  # noqa: E402
+from pipeline import (  # noqa: E402
     parse_apple_health_export,
     parse_apple_health_xml,
     process_and_predict,
