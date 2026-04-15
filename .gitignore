@@ -76,3 +76,28 @@ docs/superpowers/
 # INTERNAL MANIFESTS — Generated metadata
 # =============================================
 outputs/figures/figures_log.csv
+
+# =============================================
+# ABANDONED / SUPERSEDED — Not final product
+# =============================================
+
+# Streamlit dashboard — superseded by FastAPI app
+dashboard/
+.streamlit/
+
+# Internal report generation scripts
+scripts/
+outputs/generate_docx.py
+
+# =============================================
+# LOG FILES — Runtime noise
+# =============================================
+streamlit_out.txt
+streamlit_err.txt
+
+# =============================================
+# NON-SELECTED MODELS — Binary artifacts
+# =============================================
+outputs/models/logistic_regression.joblib
+outputs/models/svm.joblib
+outputs/models/xgboost.joblib
